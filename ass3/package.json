@@ -1,0 +1,17 @@
+{
+  "name": "ass3",
+  "version": "1.0.0",
+  "description": "WDB assigment 3",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "setsal Lan",
+  "license": "BSD",
+  "dependencies": {
+    "async": "^2.6.2",
+    "elasticsearch": "^15.4.1",
+    "mongodb": "^3.1.13",
+    "mysql": "github:mysqljs/mysql"
+  }
+}
