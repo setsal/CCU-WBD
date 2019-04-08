@@ -4,20 +4,34 @@ var fs = require('fs');
 var readline = require('readline');
 var self = {}
 var mysql = require('mysql');
-// var pool  = mysql.createPool({
-//     connectionLimit : 10,
-//     host            : process.env.MYSQL_DB_HOST,
-//     user            : process.env.MYSQL_DB_USER,
-//     password        : process.env.MYSQL_DB_PASS,
-//     database        : process.env.MYSQL_DB_NAME
-// });
-var connection = mysql.createConnection({
+var pool  = mysql.createPool({
+    connectionLimit : 10,
     host            : process.env.MYSQL_DB_HOST,
     user            : process.env.MYSQL_DB_USER,
     password        : process.env.MYSQL_DB_PASS,
     database        : process.env.MYSQL_DB_NAME
 });
-connection.connect();
+
+var myquery = require('./mquery');
+
+function mysqlInsert(data){
+    console.log(data);
+
+    pool.getConnection(function(err, connection) {
+        if (err) throw err; // not connected!
+
+        // Use the connection
+        var post = {url: data[0], title: data[1], content: data[2], viewCount: data[3], res: data[4], duration: data[5] }
+        connection.query('INSERT INTO test SET ?', post, function (error, results, fields) {
+            // When done with the connection, release it.
+            connection.release();
+            // Handle error after the release.
+            if (error) throw error;
+        });
+    });
+}
+
+
 
 self.initial = function( dataSize, done ) {
     var run = []
@@ -64,23 +78,27 @@ self.initial = function( dataSize, done ) {
 
 self.insert = function( dataSize, done ) {
     var run = [];
-    var inputStream = fs.createReadStream('./data/youtube.rec.50');
+    const inputStream = fs.createReadStream('./data/youtube.rec.50');
     // 將讀取資料流導入 Readline 進行處理
     const lineReader = readline.createInterface({ input: inputStream });
     var count = 0;
     var array = [];
 
-    lineReader.on('line', (line) => {
+    lineReader
+        .on('line', function(line) {
             if ( /^\s*$/.test(line) || line[0] != '@' ){
                 return
             }
             else if ( line == '@' ) {
-                var post = {url: array[0], title: array[1], content: array[2], viewCount: array[3], res: array[4], duration: array[5] }
-                // var sql = 'INSERT INTO test ( url, title, content, viewCount, res, duration )' + ' VALUES (`' + array[0] + '`, `' + array[1] + '`, `' + array[2] + '`, `' + array[3] + '`, `' + array[4] + '`, `' + array[5] + '`);'
-
-                connection.query('INSERT INTO test SET ?', post, function (error, results, fields) {
-                    console.log('123')
-                });
+                console.log(456)
+                // var post = {url: array[0], title: array[1], content: array[2], viewCount: array[3], res: array[4], duration: array[5] }
+                // var sql = 'INSERT INTO test SET ( url, title, content, viewCount, res, duration )' + ' VALUES (`' + array[0] + '`, `' + array[1] + '`, `' + array[2] + '`, `' + array[3] + '`, `' + array[4] + '`, `' + array[5] + '`);'
+                // console.log(sql)
+                myquery(
+                    'INSERT INTO test SET ( url, title, content, viewCount, res, duration )' +
+                    ' VALUES (`' + array[0] + '`, `' + array[1] + '`, `' + array[2] + '`, `' + array[3] + '`, `' + array[4] + '`, `' + array[5] + '`);'
+                )
+                count = 0;
                 return;
             }
             else if (   line.trim().split(':')[1] == "" ) {
@@ -110,20 +128,20 @@ self.insert = function( dataSize, done ) {
                 }
                 count++;
             }
-        });
-
-        lineReader.on('close', (line) => {
+        })
+        .on('close', function(){
             console.log('close')
+            done();
         });
-
     // callback()
     //
-    // console.time('mariadb insert');
-    // async.series(run, function(err,data){
-    //     console.timeEnd('mariadb insert');
-    //     connection.end();
-    //     if(done) done();
-    // })
+    console.time('mariadb insert');
+    async.series(run, function(err,data){
+        console.timeEnd('mariadb insert');
+        connection.end();
+        if(done) done();
+    })
+    return;
 }
 
 
