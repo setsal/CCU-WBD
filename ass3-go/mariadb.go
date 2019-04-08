@@ -7,13 +7,30 @@ import (
     "os"
 	"regexp"
 	"strings"
+	"time"
+	"github.com/joho/godotenv"
+	"database/sql"
+	_ "github.com/go-sql-driver/mysql"
 	// "reflect"
 )
 
-func main() {
-	// fptr := flag.String("fpath", "../ass3/data/youtube.rec.50", "file path to read from")
-    // flag.Parse()
+var db *sql.DB
 
+func init(){
+
+	err := godotenv.Load()
+    if err != nil {
+      log.Fatal("Error loading .env file")
+    }
+
+	// Database connection
+	dsn := os.Getenv("MYSQL_DB_USER") + ":" + os.Getenv("MYSQL_DB_PASS") + "@/" + os.Getenv("MYSQL_DB_NAME")
+	db, _ = sql.Open("mysql", dsn)
+}
+
+func main(){
+
+	// File reading pointer
     f, err := os.Open("../ass3/data/youtube.rec.50")
     if err != nil {
         log.Fatal(err)
@@ -37,6 +54,7 @@ func main() {
 	// r_url := regexp.MustCompile("(@url:)(.+)$")
 
 	//  Start
+	start := time.Now()
     for scanner.Scan() {
 
 		line := scanner.Text()
@@ -46,6 +64,7 @@ func main() {
 		} else if ( line == "@" ) {
 			// Insert Data to Database
 			fmt.Println("Insert Data")
+			insert(array[:])
 			// Reset the Counter
 			count = 0
 
@@ -55,7 +74,6 @@ func main() {
 
 		} else {
 			// Split data with each tag
-			// fmt.Println("Split the data with each other")
 			switch count {
 				case 0:
 					array[0] = strings.Split(line, "@url:")[1]
@@ -79,6 +97,8 @@ func main() {
 			count++
 		}
     }
+	end := time.Now()
+	fmt.Println("insert total time:",end.Sub(start).Seconds())
 
 	// Error in reading file
     err = scanner.Err()
@@ -86,5 +106,20 @@ func main() {
         log.Fatal(err)
     }
 
-	_ = r
+
+}
+
+func insert(data []string) {
+	_, err := db.Exec(
+		"INSERT INTO test ( url, title, content, viewCount, res, duration ) VALUES (?, ?, ?, ?, ?, ?)",
+		data[0],
+		data[1],
+		data[2],
+		data[3],
+		data[4],
+		data[5],
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
