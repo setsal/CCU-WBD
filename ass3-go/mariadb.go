@@ -1,5 +1,3 @@
-// You can edit this code!
-// Click here and start typing.
 package main
 
 import (
@@ -31,7 +29,12 @@ func main() {
 
 	// line counter
 	count := 0
+
+	// data array
+	var array [6]string
+
 	r, _ := regexp.Compile(`^\s*$`)
+	// r_url := regexp.MustCompile("(@url:)(.+)$")
 
 	//  Start
     for scanner.Scan() {
@@ -40,8 +43,6 @@ func main() {
 
 		if ( r.MatchString(line) || line[0:1] != "@" ){
 			// Line format invalid
-			fmt.Println("Line format invalid")
-
 		} else if ( line == "@" ) {
 			// Insert Data to Database
 			fmt.Println("Insert Data")
@@ -50,12 +51,31 @@ func main() {
 
 		} else if ( len(strings.Split(line, ":")) == 1 ) {
 			// Split the data but it null
-			fmt.Println("Data Null")
 			count++
 
 		} else {
 			// Split data with each tag
-			fmt.Println("Split the data with each other")
+			// fmt.Println("Split the data with each other")
+			switch count {
+				case 0:
+					array[0] = strings.Split(line, "@url:")[1]
+					break;
+				case 1:
+					array[1] = strings.Split(line, "@title:")[1]
+					break;
+				case 2:
+					array[2] = strings.Split(line, "@content:")[1]
+					break;
+				case 3:
+					array[3] = strings.Split(line, "@viewCount:")[1]
+					break;
+				case 4:
+					array[4] = strings.Split(line, "@res:")[1]
+					break
+				case 5:
+					array[5] = strings.Split(line, "@duration:")[1]
+					break;
+			}
 			count++
 		}
     }
