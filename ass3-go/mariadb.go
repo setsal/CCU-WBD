@@ -98,7 +98,7 @@ func main(){
 		}
     }
 	end := time.Now()
-	fmt.Println("insert total time:",end.Sub(start).Seconds())
+	fmt.Println("MariaDB insert total time:",end.Sub(start).Seconds())
 
 	// Error in reading file
     err = scanner.Err()
