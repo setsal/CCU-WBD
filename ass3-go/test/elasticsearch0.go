@@ -1,7 +1,6 @@
 package main
 
 import (
-    "context"
     "bufio"
     "fmt"
     "log"
@@ -11,8 +10,7 @@ import (
 	"time"
     "strconv"
 	"github.com/joho/godotenv"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
+    "github.com/elastic/go-elasticsearch"
 	// "reflect"
 )
 
@@ -38,12 +36,8 @@ func main(){
     }
 
 	// Database connection
-    ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-    client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
-    if err != nil {
-        log.Fatal(err)
-    }
-    collection := client.Database("test").Collection("test")
+    es, _ := elasticsearch.NewDefaultClient()
+    log.Println(es.Info())
 
 
 	// File reading pointer
@@ -79,11 +73,6 @@ func main(){
 		} else if ( line == "@" ) {
 			// Insert Data to Database
 			// insert(post)
-            if result, err := collection.InsertOne(ctx, post); err == nil {
-                log.Println(result)
-            } else {
-                log.Fatal(err)
-            }
 			// Reset the Counter
 			count = 0
 
@@ -117,7 +106,7 @@ func main(){
 		}
     }
 	end := time.Now()
-	fmt.Println("MonogoDB insert total time:",end.Sub(start).Seconds())
+	fmt.Println("Elasticsearch insert total time:",end.Sub(start).Seconds())
 
 	// Error in reading file
     err = scanner.Err()
