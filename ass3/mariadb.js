@@ -40,7 +40,7 @@ self.initial = function( dataSize, done ) {
 	run.push(function(callback){
         pool.getConnection(function(err, connection) {
             if (err) throw err; // not connected!
-            var sql = "CREATE TABLE test ( id int(11) NOT NULL AUTO_INCREMENT, url VARCHAR(100), title VARCHAR(100), content VARCHAR(255), viewCount INT, res INT, duration INT, PRIMARY KEY(id) )";
+            var sql = "CREATE TABLE test ( id int(11) NOT NULL AUTO_INCREMENT, url VARCHAR(100), title VARCHAR(255), content VARCHAR(255), viewCount INT, res INT, duration INT, PRIMARY KEY(id) )";
             connection.query(sql, function (error, results, fields) {
                 // When done with the connection, release it.
                 connection.release();

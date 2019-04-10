@@ -120,6 +120,6 @@ func insert(data []string) {
 		data[5],
 	)
 	if err != nil {
-		log.Fatal(err)
+		// log.Fatal(err)
 	}
 }
