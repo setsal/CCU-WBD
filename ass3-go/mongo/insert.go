@@ -13,16 +13,18 @@ import (
 	"github.com/joho/godotenv"
     "go.mongodb.org/mongo-driver/mongo"
     "go.mongodb.org/mongo-driver/mongo/options"
+    // "go.mongodb.org/mongo-driver/bson"
 	// "reflect"
 )
 
 type Post struct {
-    url         string
-    title       string
-    content     string
-    viewCount   int
-    res         int
-    duration    int
+    Postid      int     `bson:postid`
+    Url         string      `bson:"url"`
+    Title       string      `bson:"title"`
+    Content     string      `bson:"content"`
+    ViewCount   int         `bson:"viewCount"`
+    Res         int         `bson:"res"`
+    Duration    int         `bson:"duration"`
 }
 
 
@@ -32,14 +34,14 @@ func init(){
 
 func main(){
 
-    err := godotenv.Load()
+    err := godotenv.Load("../.env")
     if err != nil {
       log.Fatal("Error loading .env file")
     }
 
 	// Database connection
-    ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-    client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+    ctx, _ := context.WithTimeout(context.Background(), 50*time.Second)
+    client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://127.0.0.1:27017"))
     if err != nil {
         log.Fatal(err)
     }
@@ -47,7 +49,7 @@ func main(){
 
 
 	// File reading pointer
-    f, err := os.Open("../ass3/data/youtube.rec.100000")
+    f, err := os.Open("../../ass3/data/youtube.rec.1000000")
     if err != nil {
         log.Fatal(err)
     }
@@ -62,7 +64,7 @@ func main(){
 
 	// line counter
 	count := 0
-
+    pcount := 1
 	// data array
 	var post Post
 
@@ -79,8 +81,11 @@ func main(){
 		} else if ( line == "@" ) {
 			// Insert Data to Database
 			// insert(post)
+            post.Postid = pcount
             if result, err := collection.InsertOne(ctx, post); err == nil {
-                log.Println(result)
+                fmt.Println(result)
+                fmt.Println(pcount)
+                pcount++
             } else {
                 log.Fatal(err)
             }
@@ -95,22 +100,22 @@ func main(){
 			// Split data with each tag
 			switch count {
 				case 0:
-					post.url = strings.Split(line, "@url:")[1]
+					post.Url = strings.Split(line, "@url:")[1]
 					break;
 				case 1:
-					post.title = strings.Split(line, "@title:")[1]
+					post.Title = strings.Split(line, "@title:")[1]
 					break;
 				case 2:
-					post.content = strings.Split(line, "@content:")[1]
+					post.Content = strings.Split(line, "@content:")[1]
 					break;
 				case 3:
-					post.viewCount, _ = strconv.Atoi(strings.Split(line, "@viewCount:")[1])
+					post.ViewCount, _ = strconv.Atoi(strings.Split(line, "@viewCount:")[1])
 					break;
 				case 4:
-					post.res, _ = strconv.Atoi(strings.Split(line, "@res:")[1])
+					post.Res, _ = strconv.Atoi(strings.Split(line, "@res:")[1])
 					break
 				case 5:
-					post.duration, _ = strconv.Atoi(strings.Split(line, "@duration:")[1])
+					post.Duration, _ = strconv.Atoi(strings.Split(line, "@duration:")[1])
 					break;
 			}
 			count++

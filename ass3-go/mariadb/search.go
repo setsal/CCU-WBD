@@ -15,7 +15,7 @@ var db *sql.DB
 
 func init(){
 
-	err := godotenv.Load()
+	err := godotenv.Load("../.env")
     if err != nil {
       log.Fatal("Error loading .env file")
     }
@@ -30,14 +30,14 @@ func main(){
 	start := time.Now()
     search()
 	end := time.Now()
-	fmt.Println("MariaDB delete total time:",end.Sub(start).Seconds())
+	fmt.Println("MariaDB search total time:",end.Sub(start).Seconds())
 }
 
 func search() {
-
+    cnt := 1
     var res_id int
     // Search
-	rows, err := db.Query( "SELECT id FROM test WHERE title like ?", "%feat%" )
+	rows, err := db.Query( "SELECT id FROM test WHERE title like ?", "%sport%" )
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,8 +46,10 @@ func search() {
             log.Fatal(err)
         }
         fmt.Printf("%d\n", res_id)
+        cnt++
     }
     if err := rows.Err(); err != nil {
         log.Fatal(err)
     }
+    fmt.Println(cnt)
 }

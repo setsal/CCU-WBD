@@ -15,7 +15,7 @@ var db *sql.DB
 
 func init(){
 
-	err := godotenv.Load()
+	err := godotenv.Load("../.env")
     if err != nil {
       log.Fatal("Error loading .env file")
     }
@@ -36,7 +36,7 @@ func main(){
 func delete() {
 
     // Delete 1% data
-	_, err := db.Exec( "DELETE FROM test WHERE id >= 1 and id < 10000" )
+	_, err := db.Exec( "DELETE FROM test WHERE id >= 500000 and id < 999999" )
 
     /* Delete 10% data
 	_, err := db.Exec(

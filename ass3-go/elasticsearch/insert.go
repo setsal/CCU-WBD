@@ -16,7 +16,7 @@ import (
 )
 
 var client *elastic.Client
-var host = "http://localhost:9200"
+var host = "http://127.0.0.1:9200"
 
 type Post struct {
     Url         string      `json:"url"`
@@ -63,13 +63,13 @@ func init(){
 func main(){
 
     //dot env file load
-    err := godotenv.Load()
+    err := godotenv.Load("../.env")
     if err != nil {
       log.Fatal("Error loading .env file")
     }
 
 	// File reading pointer
-    f, err := os.Open("../ass3/data/youtube.rec.50")
+    f, err := os.Open("../../ass3/data/youtube.rec.1000000")
     if err != nil {
         log.Fatal(err)
     }
@@ -153,7 +153,6 @@ func insert(data Post, cnt int) {
                     Type("post").
                     Id(id).
                     BodyJson(data).
-                    Refresh("wait_for").
                     Do(context.Background())
     if err != nil {
         log.Fatal(err)
