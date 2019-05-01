@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+ #include <math.h>
 #include "BPlusTree.h"
 
 #define true 1
@@ -27,6 +28,7 @@ long count = 1;
 
 void *IntToByte( long value );
 void InsertToBase( unsigned char input[] );
+int hashCode( char input[] );
 
 // file
 char input_file[100];
@@ -61,6 +63,7 @@ void MainLoop();
 
 
 int main () {
+    printf("%d", 1);
 
     //
     // unsigned char key[12];
@@ -89,6 +92,7 @@ int main () {
 	strcpy(output_file, "data/out.txt");
 
 	// MainLoop (for presentation)
+    // hashCode("h1llo");
 	MainLoop();
 
     return 0;
@@ -124,7 +128,14 @@ void InsertToBase( unsigned char input[] ) {
     base[16] = '\0';
 }
 
-
+int hashCode( char input[] ) {
+    int i, sum;
+    for ( i=strlen(input); i>0; i-- ) {
+        sum = sum + input[i]*((int)pow(31, i));
+    }
+    printf("%d\n", sum);
+    return sum;
+}
 
 
 /** Read and insert records into B+tree */
@@ -147,7 +158,8 @@ void Read_Data_And_Insert() {
             rid++;
             char* value = (char*)malloc(sizeof(char) * 12);
             strcpy(value, str+37);
-            printf("Inserting the %d th record, value:%s\n", rid, key);
+            printf("Inserting the %d th record, key:%s, rid:\n", rid, key);
+            // printf("Inserting the %d th record, key:%s, rid:%d\n", rid, key, hashCode(str+37));
             if (BPlusTree_Insert(rid, 30, value) == true) validRecords++;
         }
     }
@@ -167,7 +179,6 @@ void ShowHelp() {
 void MainLoop() {
 	double start_time, end_time;
 	int built = false;
-
 	// B+tree initialize
 	BPlusTree_Init();
 	while (1) {
