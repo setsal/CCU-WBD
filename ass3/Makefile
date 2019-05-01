@@ -1,4 +1,9 @@
-main: main.c
-	gcc main.c -o main
+objects = main.o BPlusTree.o
+test: $(objects)
+	cc -g -o test  $(objects)
+main.o: main.c BPlusTree.h
+	cc -g -c main.c BPlusTree.h
+BPlusTree.o: BPlusTree.c BPlusTree.h
+	cc -g -c BPlusTree.c BPlusTree.h
 clean:
-	rm -f main
+	-rm test $(objects)
