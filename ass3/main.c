@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
- #include <math.h>
+#include <math.h>
 #include "BPlusTree.h"
 
 #define true 1
@@ -28,11 +28,9 @@ long count = 1;
 
 void *IntToByte( long value );
 void InsertToBase( unsigned char input[] );
-int hashCode( char input[] );
+unsigned int hashCode( char input[] );
 
 // file
-char input_file[100];
-char output_file[100];
 char *buffer;
 int fsize;
 // record
@@ -48,14 +46,6 @@ int keys[10000000], key_num;
 /** Read and insert records into B+tree */
 void Read_Data_And_Insert();
 
-/** Modify (key, value) on data file */
-int File_Modify(int pos, int key, char *value);
-
-/** Delete (key, value) on data file */
-void File_Delete(int pos);
-
-/** Insert (key, value) on data file */
-int File_Insert(int new_key, char* new_st);
 
 /** Show Help */
 void ShowHelp();
@@ -63,7 +53,6 @@ void MainLoop();
 
 
 int main () {
-    printf("%d", 1);
 
     //
     // unsigned char key[12];
@@ -87,9 +76,6 @@ int main () {
     // }
     // fclose(pDataFile);
 
-    // set input_file, output_file
-	strcpy(input_file, "data/small-data.txt");
-	strcpy(output_file, "data/out.txt");
 
 	// MainLoop (for presentation)
     // hashCode("h1llo");
@@ -128,12 +114,12 @@ void InsertToBase( unsigned char input[] ) {
     base[16] = '\0';
 }
 
-int hashCode( char input[] ) {
-    int i, sum;
+unsigned int hashCode( char input[] ) {
+    int i;
+    unsigned int sum;
     for ( i=strlen(input); i>0; i-- ) {
         sum = sum + input[i]*((int)pow(31, i));
     }
-    printf("%d\n", sum);
     return sum;
 }
 
@@ -151,16 +137,16 @@ void Read_Data_And_Insert() {
 
     int i = 0;
 
-    pDataFile = fopen("../data/youtube.rec.50","r");
+    pDataFile = fopen("../data/youtube.rec.mid","r");
     while(fgets(str, sizeof(str), pDataFile) != NULL) {
         if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
             str[48] = '\0';
             rid++;
             char* value = (char*)malloc(sizeof(char) * 12);
             strcpy(value, str+37);
-            printf("Inserting the %d th record, key:%s, rid:\n", rid, key);
-            // printf("Inserting the %d th record, key:%s, rid:%d\n", rid, key, hashCode(str+37));
-            if (BPlusTree_Insert(rid, 30, value) == true) validRecords++;
+            unsigned int hashkey = hashCode(str+37);
+            printf("Inserting the %d th record, key:%s, rid:%u\n", rid, value, hashkey);
+            if (BPlusTree_Insert(hashkey, 30, value) == true) validRecords++;
         }
     }
 }
@@ -231,14 +217,18 @@ void MainLoop() {
 			case 4: {
 				// Query on a key
 				printf("input the key: ");
-				int key;
-				scanf("%d", &key);
+				unsigned int key;
+				scanf("%u", &key);
 				start_time = clock();
 				BPlusTree_Query_Key(key);
 				end_time = clock();
 				printf("Query on a key, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
 				break;
 			}
+            case 5: {
+                BPlusTree_Print();
+                break;
+            }
 			case 9: return;
 			default: break;
 		}
