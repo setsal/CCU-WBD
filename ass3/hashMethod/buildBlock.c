@@ -27,12 +27,13 @@ Block *head;
 
 void IntToByte( unsigned int value );
 void InsertToBase( unsigned char input[] );
+unsigned int hashCode( char input[] );
 unsigned int offset;
 void InitBlock();
-void InsertToBlock( unsigned char key[] );
+void InsertToBlock( unsigned int hashValue );
 void SplitBlock( Block *new, Block *old );
-Block *FindBlock( unsigned char key[] );
-int FindInsertPoint( char *blockptr, int blockSize, unsigned char key[] );
+Block *FindBlock( unsigned int hashValue );
+int FindInsertPoint( char *blockptr, int blockSize, unsigned int hashValue );
 
 
 
@@ -46,7 +47,7 @@ int main () {
     unsigned int validRecords = 1;
 
 
-    pDataFile = fopen("../data/youtube.rec.mid","r");
+    pDataFile = fopen("../data/youtube.rec.50","r");
     while(fgets(str, sizeof(str), pDataFile) != NULL) {
         if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
             str[48] = '\0';
@@ -59,25 +60,23 @@ int main () {
             InsertToBase(str+37);
 
             //Insert to Block
-            printf("Inserting %u record: %s", validRecords, str+37);
-            printf(" %x %x %x %x, ", base[12], base[13], base[14], base[15]);
-            InsertToBlock(str+37);
-            printf("\n");
+            printf("Inserting %u record: %s, hashValue: %u\n", validRecords, str+37, hashCode(str+37));
+            InsertToBlock( hashCode(str+37) );
+
             validRecords++;
+            if(validRecords == 3) {
+                break;
+            }
         }
     }
     fclose(pDataFile);
 
     //store in file
     FILE *fp;
-    fp = fopen("../data/blockfile", "wb+");
-    Block *curr = head;
-    while( curr->next != NULL ) {
-        fwrite(curr->blockptr, curr->blockSize, 1, fp);
-        fwrite("\n", 1, 1, fp);
-        curr = curr->next;
-    }
+    fp = fopen("local", "wb+");
+    fwrite(head->blockptr, head->blockSize, 1, fp);
     fclose(fp);
+
 
     return 0;
 }
@@ -115,6 +114,18 @@ void InsertToBase( unsigned char rid[] ) {
     base[16] = '\0';
 }
 
+unsigned int hashCode( char input[] ) {
+    int i;
+    unsigned int sum;
+
+    for ( i=strlen(input)-1; i>=0; i-- ) {
+        printf("%x ", input[i]);
+        sum = sum + input[i]*((int)pow(31, i));
+    }
+
+    printf("\n%s, length %d, sum %u\n", input, strlen(input), sum);
+    return sum;
+}
 
 void InitBlock() {
     head = NULL;
@@ -124,20 +135,21 @@ void InitBlock() {
     head->next = NULL;
 }
 
-Block *FindBlock( unsigned char key[] ) {
+Block *FindBlock( unsigned int hashValue ) {
     Block *currentptr;
-    Block *preptr;
+    Block *nextptr;
     currentptr = head;
+    nextptr = currentptr->next;
 
-    if ( currentptr->next == NULL ) {  //First Block
+    if ( nextptr == NULL ) {  //First Block
         return head;
     }
     else {
-        while ( strcmp( key, currentptr->blockptr ) > 0 ) {
-            preptr = currentptr;
+        while ( hashValue > hashCode(nextptr->blockptr)  ) {
             currentptr = currentptr->next;
+            nextptr = currentptr->next;
         }
-        return preptr;
+        return currentptr;
     }
 
 }
@@ -148,16 +160,25 @@ void SplitBlock( Block *new, Block *old ) {
     char *oldptr = old->blockptr;
 
     oldptr = oldptr + 31994;
+    printf("\n");
     for ( i=0; i<31994; i++ ) {
+        if( i<50 ) {
+            if ( i%17 == 0 ) {
+                printf("\n");
+            }
+            printf(" old char %x:", *oldptr );
+        }
         *oldptr++ = *newptr++;
     }
+    printf("\n\n");
     old->blockSize = old->blockSize - 31994;
     new->blockSize = 31994;
+    // exit(-1);
 }
 
-void InsertToBlock( unsigned char key[] ) {
+void InsertToBlock( unsigned int hashValue ) {
 
-    Block *TargetBlock = FindBlock(key);
+    Block *TargetBlock = FindBlock( hashValue );
     char *TargetBlockPtr = TargetBlock->blockptr;
     int i = 0;
     int insertPoint;
@@ -175,9 +196,11 @@ void InsertToBlock( unsigned char key[] ) {
         // Link the old block to new
         TargetBlock->next = NewBlock;
 
+
     }
     else {
         //Insert
+        printf(" %x %x %x %x\n", base[12], base[13], base[14], base[15]);
         i = 0;
         if ( TargetBlock->blockSize == 0 ) {
             while ( i < BASE_SIZE ) {
@@ -186,51 +209,50 @@ void InsertToBlock( unsigned char key[] ) {
             }
         }
         else {
-            insertPoint = FindInsertPoint( TargetBlockPtr, TargetBlock->blockSize, key );
-            if ( insertPoint == TargetBlock->blockSize ) {
-                for ( i = 0; i < BASE_SIZE; i++ ) {
-                    *(TargetBlockPtr+insertPoint+i) = base[i];
-                }
+            insertPoint = FindInsertPoint( TargetBlockPtr, TargetBlock->blockSize, hashValue );
+
+            for ( i = TargetBlock->blockSize-1; i>=insertPoint; i-- ) {
+                // printf(" %x", *(TargetBlockPtr+i));
+                *(TargetBlockPtr+i+17) = *(TargetBlockPtr+i);
             }
-            else {
-
-                // shift the value to new position
-                for ( i = TargetBlock->blockSize-1; i>=insertPoint; i-- ) {
-                    *(TargetBlockPtr+i+17) = *(TargetBlockPtr+i);
-                }
-
-
-                //insert the new value
-                for ( i = 0; i < BASE_SIZE; i++ ) {
-                    *(TargetBlockPtr+insertPoint+i) = base[i];
-                }
+            printf("\n");
+            for ( i = insertPoint; i < BASE_SIZE; i++ ) {
+                // printf(" %x", *(TargetBlockPtr+i));
+                *(TargetBlockPtr+i) = base[i];
             }
+
         }
         TargetBlock->blockSize = TargetBlock->blockSize + 17;
-        // for ( i=0; i<TargetBlock->blockSize; i++ ) {
-        //     if(i%17==0){
-        //         printf("\n");
-        //     }
-        //     printf(" %x", *(TargetBlockPtr+i));
-        // }
-        // printf("\n---- \n");
+        for ( i=0; i<TargetBlock->blockSize; i++ ) {
+            if(i%17==0){
+                printf("\n");
+            }
+            printf(" %x", *(TargetBlockPtr+i));
+        }
+        printf("\n---- \n");
     }
 }
 
-int FindInsertPoint( char *blockptr, int blockSize, unsigned char key[] ) {
+int FindInsertPoint( char *blockptr, int blockSize, unsigned int hashValue ) {
 
-    // printf("Current BlockSize: %d, (Default CompareValue: %s) v.s. (TargetValue: %s)\n", blockSize, blockptr, key);
+    char tmpRid[11];
+    strcpy( tmpRid, blockptr );
+    unsigned int tmpRidHashValue = hashCode(blockptr);
+    // printf("Current BlockSize: %d, (Default CompareValue: %s - %u) v.s. (TargetValue: %u)\n", blockSize, blockptr, tmpRidHashValue, hashValue);
+
     int position = 0;
-    while ( strcmp( key, blockptr ) > 0 ) {
+    while ( hashValue > tmpRidHashValue ) {
 
         position+=17;
         if ( position + 17 > blockSize ) {
             break;
         }
-        blockptr+=17;
-        // printf(" (New CompareValue: %s) v.s. (TargetValue: %s), position: %d\n", blockptr, key, position);
+
+        strcpy( tmpRid, blockptr+position );
+        tmpRidHashValue = hashCode(tmpRid);
+        printf(" (New CompareValue: %s - %u) v.s. (TargetValue: %u), position: %d\n", tmpRid, tmpRidHashValue, hashValue, position);
 
     }
-    // printf("InsertPosition %d", position);
+    printf(" InsertPosition %d", position);
     return position;
 }

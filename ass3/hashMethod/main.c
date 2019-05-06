@@ -28,6 +28,7 @@ long count = 1;
 
 void *IntToByte( long value );
 void InsertToBase( unsigned char input[] );
+unsigned int hashCode( char input[] );
 
 // file
 char *buffer;
@@ -52,6 +53,7 @@ void MainLoop();
 
 
 int main () {
+
     //
     // unsigned char key[12];
     //
@@ -76,6 +78,7 @@ int main () {
 
 
 	// MainLoop (for presentation)
+    // hashCode("h1llo");
 	MainLoop();
 
     return 0;
@@ -111,26 +114,41 @@ void InsertToBase( unsigned char input[] ) {
     base[16] = '\0';
 }
 
+unsigned int hashCode( char input[] ) {
+    int i;
+    unsigned int sum;
+    for ( i=strlen(input); i>0; i-- ) {
+        sum = sum + input[i]*((int)pow(31, i));
+    }
+    return sum;
+}
+
 
 /** Read and insert records into B+tree */
 void Read_Data_And_Insert() {
+	int rid = 0;
+	int cur = 0;
+    char key[12];
 
+    // IntToByte( count );
+    // InsertToBase( fakeinput );
     char str[1000];
     FILE *pDataFile;
-    pDataFile = fopen("../data/youtube.rec.50","r");
 
+    int i = 0;
+
+    pDataFile = fopen("../data/youtube.rec.mid","r");
     while(fgets(str, sizeof(str), pDataFile) != NULL) {
         if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
             str[48] = '\0';
-            printf("Inserting the %d record, key:%s\n", validRecords, str+37 );
-            if (BPlusTree_Insert(str+37) == true) validRecords++;
-            if ( validRecords == 5 ) {
-                break;
-            }
+            rid++;
+            char* value = (char*)malloc(sizeof(char) * 12);
+            strcpy(value, str+37);
+            unsigned int hashkey = hashCode(str+37);
+            printf("Inserting the %d th record, key:%s, rid:%u\n", rid, value, hashkey);
+            if (BPlusTree_Insert(hashkey, 30, value) == true) validRecords++;
         }
     }
-    fclose(pDataFile);
-
 }
 
 /** Show Help */
@@ -145,47 +163,43 @@ void ShowHelp() {
 }
 
 void MainLoop() {
-
-    // ShowHelp();
 	double start_time, end_time;
 	int built = false;
-    int request;
-
-    // B+tree initialize
+	// B+tree initialize
 	BPlusTree_Init();
-
-    while (1) {
-        ShowHelp();
-        scanf(" \n%d", &request);
+	while (1) {
+		ShowHelp();
+		int request;
+		scanf("%d", &request);
 		switch (request) {
 			case 0: {
 				break;
 			}
 			case 1: {
 				// Set Depth
-				// printf("input depth: ");
-				// int depth;
-				// scanf("%d", &depth);
-				// int maxCh = 2;
-				// while (1) {
-				// 	int leaves = 1, i;
-				// 	for (i = 0; i < depth; i++) {
-				// 		leaves *= maxCh;
-				// 		if (leaves > TotalRecords) break;
-				// 	}
-				// 	if (leaves > TotalRecords) break;
-				// 	maxCh++;
-				// }
-				// printf("Desired depth = %d, calculated maxChildNumber = %d\n", depth, maxCh);
-				// BPlusTree_SetMaxChildNumber(maxCh);
+				printf("input depth: ");
+				int depth;
+				scanf("%d", &depth);
+				int maxCh = 2;
+				while (1) {
+					int leaves = 1, i;
+					for (i = 0; i < depth; i++) {
+						leaves *= maxCh;
+						if (leaves > TotalRecords) break;
+					}
+					if (leaves > TotalRecords) break;
+					maxCh++;
+				}
+				printf("Desired depth = %d, calculated maxChildNumber = %d\n", depth, maxCh);
+				BPlusTree_SetMaxChildNumber(maxCh);
 				break;
 			}
 			case 2: {
 				// Set MaxChildNumber
-				// printf("input MaxChildNumber: ");
-				// int maxCh;
-				// scanf("%d", &maxCh);
-				// BPlusTree_SetMaxChildNumber(maxCh);
+				printf("input MaxChildNumber: ");
+				int maxCh;
+				scanf("%d", &maxCh);
+				BPlusTree_SetMaxChildNumber(maxCh);
 				break;
 			}
 			case 3: {
@@ -202,17 +216,17 @@ void MainLoop() {
 			}
 			case 4: {
 				// Query on a key
-				// printf("input the key: ");
-				// unsigned int key;
-				// scanf("%u", &key);
-				// start_time = clock();
-				// BPlusTree_Query_Key(key);
-				// end_time = clock();
-				// printf("Query on a key, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
+				printf("input the key: ");
+				unsigned int key;
+				scanf("%u", &key);
+				start_time = clock();
+				BPlusTree_Query_Key(key);
+				end_time = clock();
+				printf("Query on a key, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
 				break;
 			}
             case 5: {
-                // BPlusTree_Print();
+                BPlusTree_Print();
                 break;
             }
 			case 9: return;
