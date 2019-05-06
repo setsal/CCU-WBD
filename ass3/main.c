@@ -19,7 +19,7 @@ struct Block {
 
 
 /*
-    key  \0  id  \0
+    rid  \0  key  \0
     11 + 1 + 4 + 1
 */
 unsigned char base[BASE_SIZE];
