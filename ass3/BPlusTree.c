@@ -79,19 +79,16 @@ void Split(BPlusTreeNode* Cur) {
 
 
 	int i;
-	printf("mid: %d\n", Mid);
+	// printf("mid: %d\n", Mid);
 	for( i=Mid; i<MaxChildNumber; i++) {
 		Temp->child[i-Mid] = Cur->child[i];
 		Temp->key[i-Mid] = Cur->key[i];
 
 		if( Temp->isLeaf ) {
-			printf("is leaf!");
 			// Temp->pos[i-Mid] = Cur->pos[i];
 		} else {
-			printf("loopinner");
 			ch = Temp->child[i-Mid];
 			ch->father = Temp;
-			printf("loopinner ned");
 		}
 
 	}
@@ -121,23 +118,23 @@ void Split(BPlusTreeNode* Cur) {
 
 	} else {
 		// Try to insert Temp to Cur->father
-		printf("Cur->key[Mid] : %s\n", Cur->key[Mid] );
+		// printf("Cur->key[Mid] : %s\n", Cur->key[Mid] );
 		Temp->father = Cur->father;
 		Insert( Cur->father, Cur->key[Mid], Temp );
 	}
 
-	printf("----SPLIT-----\n");
-	printf("Block 1:");
-	for ( i=0; i<Root->child[0]->key_num; i++ ) {
-		printf(" %s,", Root->child[0]->key[i] );
-	}
-	printf("\n");
-	printf("Block 2:");
-	for ( i=0; i<Root->child[1]->key_num; i++ ) {
-		printf(" %s,", Root->child[1]->key[i] );
-	}
-	printf("\n");
-	printf("----SPLIT-----\n");
+	// printf("----SPLIT-----\n");
+	// printf("Block 1:");
+	// for ( i=0; i<Root->child[0]->key_num; i++ ) {
+	// 	printf(" %s,", Root->child[0]->key[i] );
+	// }
+	// printf("\n");
+	// printf("Block 2:");
+	// for ( i=0; i<Root->child[1]->key_num; i++ ) {
+	// 	printf(" %s,", Root->child[1]->key[i] );
+	// }
+	// printf("\n");
+	// printf("----SPLIT-----\n");
 }
 
 /** Insert (key, value) into Cur, if Cur is full, then split it to fit the definition of B+tree */
@@ -154,7 +151,7 @@ void Insert( BPlusTreeNode *Cur, char *key, BPlusTreeNode *New) {
 	else {
 		ins = Binary_Search(Cur, key) + 1;
 	}
-	printf("Ins:%d, Cur->keynum: %d\n", ins, Cur->key_num);
+	// printf("Ins:%d, Cur->keynum: %d\n", ins, Cur->key_num);
 	for (i = Cur->key_num; i > ins; i--) {
 		Cur->key[i] = Cur->key[i - 1];
 		if (Cur->isLeaf) {
@@ -184,6 +181,10 @@ void Insert( BPlusTreeNode *Cur, char *key, BPlusTreeNode *New) {
 				if (succChild != NULL) {
 					succChild->last = New;
 				}
+				for (i = Cur->key_num; i > ins; i--) {
+					Cur->child[i] = Cur->child[i-1];
+				}
+				Cur->child[ins] = New;
 
 			} else {
 				// do not have a prevChild, then refer next directly
@@ -191,6 +192,7 @@ void Insert( BPlusTreeNode *Cur, char *key, BPlusTreeNode *New) {
 				New->next = Cur->child[1];
 				printf("this happens\n");
 			}
+
 		}
 
 	}
@@ -341,27 +343,27 @@ void BPlusTree_SetMaxChildNumber(int number) {
 
 /** Interface: print the tree (DEBUG use)*/
 void BPlusTree_Print() {
-	// struct BPlusTreeNode* Leaf = Find(1000000000, false);
-	// int cnt = 0;
-	// while (Leaf != NULL) {
-	// 	int i;
-	// 	for (i = Leaf->key_num - 1; i >= 0; i--) {
-	// 		printf("%4d ", Leaf->key[i]);
-	// 		if (++cnt % 20 == 0) printf("\n");
-	// 	}
-	// 	Leaf = Leaf->last;
+	struct BPlusTreeNode* Leaf = Find("FFFFFFFFF", false);
+	int cnt = 0;
+	while (Leaf != NULL) {
+		int i;
+		for (i = Leaf->key_num - 1; i >= 0; i--) {
+			printf("%s ", Leaf->key[i]);
+			if (++cnt % 20 == 0) printf("\n");
+		}
+		Leaf = Leaf->last;
+	}
+	// int i;
+	// printf("Block 1:");
+	// for ( i=0; i<Root->child[0]->key_num; i++ ) {
+	// 	printf(" %s,", Root->child[0]->key[i] );
 	// }
-	int i;
-	printf("Block 1:");
-	for ( i=0; i<Root->child[0]->key_num; i++ ) {
-		printf(" %s,", Root->child[0]->key[i] );
-	}
-	printf("\n");
-	printf("Block 2:");
-	for ( i=0; i<Root->child[1]->key_num; i++ ) {
-		printf(" %s,", Root->child[1]->key[i] );
-	}
-	printf("\n");
+	// printf("\n");
+	// printf("Block 2:");
+	// for ( i=0; i<Root->child[1]->key_num; i++ ) {
+	// 	printf(" %s,", Root->child[1]->key[i] );
+	// }
+	// printf("\n");
 }
 
 
