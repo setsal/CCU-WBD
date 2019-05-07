@@ -122,7 +122,7 @@ void Read_Data_And_Insert() {
     while(fgets(str, sizeof(str), pDataFile) != NULL) {
         if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
             str[48] = '\0';
-            printf("Inserting the %d record, key:%s\n", validRecords, str+37 );
+            printf("\nInserting the %d record, key:%s\n", validRecords, str+37 );
             if (BPlusTree_Insert(str+37) == true) validRecords++;
             if ( validRecords == 5 ) {
                 break;
@@ -141,6 +141,7 @@ void ShowHelp() {
 	printf("  2) Set MaxChildNumber\n");
 	printf("  3) Build Tree\n");
 	printf("  4) Query on a key\n");
+    printf("  5) print tree, Debug use\n");
 	printf("  9) Quit\n");
 }
 
@@ -212,7 +213,7 @@ void MainLoop() {
 				break;
 			}
             case 5: {
-                // BPlusTree_Print();
+                BPlusTree_Print();
                 break;
             }
 			case 9: return;

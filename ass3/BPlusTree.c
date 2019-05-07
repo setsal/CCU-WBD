@@ -8,7 +8,7 @@
 
 struct BPlusTreeNode* Root;
 
-int MaxChildNumber = 5;
+int MaxChildNumber = 3;
 int TotalNodes;
 
 int QueryAnsNum;
@@ -63,7 +63,7 @@ int Binary_Search(BPlusTreeNode *Cur, char *key) {
  *	(2) Temp(Mid .. MaxChildNumber) with key[Mid]
  *  (3) Mid = MaxChildNumber / 2
  */
-void Insert(BPlusTreeNode*, char *);
+void Insert(BPlusTreeNode*, char *, BPlusTreeNode*);
 void Split(BPlusTreeNode* Cur) {
 
 	// copy Cur(Mid .. MaxChildNumber) -> Temp(0 .. Temp->key_num)
@@ -77,18 +77,23 @@ void Split(BPlusTreeNode* Cur) {
 	Temp->isLeaf = Cur->isLeaf;
 	Temp->key_num = MaxChildNumber - Mid;
 
-	int i;
 
+	int i;
+	printf("mid: %d\n", Mid);
 	for( i=Mid; i<MaxChildNumber; i++) {
 		Temp->child[i-Mid] = Cur->child[i];
 		Temp->key[i-Mid] = Cur->key[i];
 
 		if( Temp->isLeaf ) {
+			printf("is leaf!");
 			// Temp->pos[i-Mid] = Cur->pos[i];
 		} else {
-			ch = (BPlusTreeNode*)Temp->child[i-Mid];
+			printf("loopinner");
+			ch = Temp->child[i-Mid];
 			ch->father = Temp;
+			printf("loopinner ned");
 		}
+
 	}
 
 	// Change Cur
@@ -116,10 +121,12 @@ void Split(BPlusTreeNode* Cur) {
 
 	} else {
 		// Try to insert Temp to Cur->father
+		printf("Cur->key[Mid] : %s\n", Cur->key[Mid] );
 		Temp->father = Cur->father;
-		Insert( Cur->father, Cur->key[Mid] );
+		Insert( Cur->father, Cur->key[Mid], Temp );
 	}
-	/*
+
+	printf("----SPLIT-----\n");
 	printf("Block 1:");
 	for ( i=0; i<Root->child[0]->key_num; i++ ) {
 		printf(" %s,", Root->child[0]->key[i] );
@@ -130,11 +137,11 @@ void Split(BPlusTreeNode* Cur) {
 		printf(" %s,", Root->child[1]->key[i] );
 	}
 	printf("\n");
-	*/
+	printf("----SPLIT-----\n");
 }
 
 /** Insert (key, value) into Cur, if Cur is full, then split it to fit the definition of B+tree */
-void Insert( BPlusTreeNode* Cur, char *key ) {
+void Insert( BPlusTreeNode *Cur, char *key, BPlusTreeNode *New) {
 
 	int i, ins;
 
@@ -151,6 +158,7 @@ void Insert( BPlusTreeNode* Cur, char *key ) {
 	for (i = Cur->key_num; i > ins; i--) {
 		Cur->key[i] = Cur->key[i - 1];
 		if (Cur->isLeaf) {
+			// Cur->child[i] = Cur->child[i-1];
 			//Cur->pos[i] = Cur->pos[i - 1];
 		}
 	}
@@ -159,27 +167,32 @@ void Insert( BPlusTreeNode* Cur, char *key ) {
 	strcpy( Cur->key[ins], key );
 
 
-	// make links on leaves
+	// make links on leaves, if root or upper change
 	if ( Cur->isLeaf == false ) {
-		// BPlusTreeNode* firstChild = (BPlusTreeNode*)(Cur->child[0]);
-		// if (firstChild->isLeaf == true) { // which means value is also a leaf as child[0]
-		// 	BPlusTreeNode* temp = (BPlusTreeNode*)(value);
-		// 	if (ins > 0) {
-		// 		BPlusTreeNode* prevChild;
-		// 		BPlusTreeNode* succChild;
-		// 		prevChild = (BPlusTreeNode*)Cur->child[ins - 1];
-		// 		succChild = prevChild->next;
-		// 		prevChild->next = temp;
-		// 		temp->next = succChild;
-		// 		temp->last = prevChild;
-		// 		if (succChild != NULL) succChild->last = temp;
-		// 	} else {
-		// 		// do not have a prevChild, then refer next directly
-		// 		// updated: the very first record on B+tree, and will not come to this case
-		// 		temp->next = Cur->child[1];
-		// 		printf("this happens\n");
-		// 	}
-		// }
+		BPlusTreeNode *firstChild = Cur->child[0];
+
+		// which means value is also a leaf as child[0]
+		if (firstChild->isLeaf == true) {
+			if (ins > 0) {
+				BPlusTreeNode *prevChild;
+				BPlusTreeNode *succChild;
+				prevChild = Cur->child[ins-1];
+				succChild = prevChild->next;
+				prevChild->next = New;
+				New->next = succChild;
+				New->last = prevChild;
+				if (succChild != NULL) {
+					succChild->last = New;
+				}
+
+			} else {
+				// do not have a prevChild, then refer next directly
+				// updated: the very first record on B+tree, and will not come to this case
+				New->next = Cur->child[1];
+				printf("this happens\n");
+			}
+		}
+
 	}
 
 
@@ -241,13 +254,13 @@ int BPlusTree_Insert(char *key) {
 	BPlusTreeNode* Leaf = Find( key, true );
 	int i = Binary_Search(Leaf, key);
 	if ( i == -1 ) {
-		Insert( Leaf, key );
+		Insert( Leaf, key, NULL );
 	}
 	else if ( strcmp( Leaf->key[i], key ) == 0 ) {
 		return false;
 	}
 	else {
-		Insert( Leaf, key );
+		Insert( Leaf, key, NULL );
 	}
 	return true;
 }
@@ -327,20 +340,29 @@ void BPlusTree_SetMaxChildNumber(int number) {
 
 
 /** Interface: print the tree (DEBUG use)*/
-/*
 void BPlusTree_Print() {
-	struct BPlusTreeNode* Leaf = Find(1000000000, false);
-	int cnt = 0;
-	while (Leaf != NULL) {
-		int i;
-		for (i = Leaf->key_num - 1; i >= 0; i--) {
-			printf("%4d ", Leaf->key[i]);
-			if (++cnt % 20 == 0) printf("\n");
-		}
-		Leaf = Leaf->last;
+	// struct BPlusTreeNode* Leaf = Find(1000000000, false);
+	// int cnt = 0;
+	// while (Leaf != NULL) {
+	// 	int i;
+	// 	for (i = Leaf->key_num - 1; i >= 0; i--) {
+	// 		printf("%4d ", Leaf->key[i]);
+	// 		if (++cnt % 20 == 0) printf("\n");
+	// 	}
+	// 	Leaf = Leaf->last;
+	// }
+	int i;
+	printf("Block 1:");
+	for ( i=0; i<Root->child[0]->key_num; i++ ) {
+		printf(" %s,", Root->child[0]->key[i] );
 	}
+	printf("\n");
+	printf("Block 2:");
+	for ( i=0; i<Root->child[1]->key_num; i++ ) {
+		printf(" %s,", Root->child[1]->key[i] );
+	}
+	printf("\n");
 }
-*/
 
 
 /** Interface: Total Nodes */

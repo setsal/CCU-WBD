@@ -1,7 +1,7 @@
 #ifndef __BPlusTree_H__
 #define __BPlusTree_H__
 
-#define MAX_CHILD_NUMBER 5
+#define MAX_CHILD_NUMBER 3
 
 typedef struct BPlusTreeNode {
 	int isRoot, isLeaf;
