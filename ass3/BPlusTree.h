@@ -1,25 +1,28 @@
 #ifndef __BPlusTree_H__
 #define __BPlusTree_H__
 
-#define MAX_CHILD_NUMBER 3
+#define DEFAULT_ORDER 4
+#define bool char
 
-typedef struct BPlusTreeNode {
-	int isRoot, isLeaf;
-	int key_num;
-	char *key[MAX_CHILD_NUMBER];
-	int pos[MAX_CHILD_NUMBER];
-	struct BPlusTreeNode* child[MAX_CHILD_NUMBER];
-	struct BPlusTreeNode* father;
-	struct BPlusTreeNode* next;
-	struct BPlusTreeNode* last;
-} BPlusTreeNode;
+// TYPES.
+typedef struct record {
+	unsigned int offset;
+} record;
 
-extern void BPlusTree_SetMaxChildNumber(int);
-extern void BPlusTree_Init();
-extern void BPlusTree_Destroy();
-extern int BPlusTree_Insert(char *);
-extern int BPlusTree_GetTotalNodes();
-extern void BPlusTree_Query_Key(unsigned int);
-extern void BPlusTree_Print();
+typedef struct node {
+	void ** pointers;
+	char *keys[DEFAULT_ORDER-1];
+	struct node *parent;
+	bool is_leaf;
+	int num_keys;
+	struct node *next; // Used for queue.
+} node;
+
+
+extern void print_leaves(node *const);
+extern void print_tree(node *const);
+extern void find_and_print(node *const, char *, bool);
+extern node *insert( node *, char *, unsigned int );
+extern node *destroy_tree(node *);
 
 #endif

@@ -1,6 +1,5 @@
 #define BLOCK_SIZE 64000
 #define BASE_SIZE 17
-#define M 3
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,217 +7,177 @@
 #include <math.h>
 #include "BPlusTree.h"
 
-#define true 1
-#define false 0
-#define MAX_KEY 1000000000
 
-struct Block {
-    unsigned char *blockptr;
-    int blockSize;
-};
+#define MIN_ORDER 3
+#define MAX_ORDER 20
+#define BUFFER_SIZE 256
+#define bool char
+#define false 0
+#define true 1
+
 
 
 /*
-    rid  \0  key  \0
-    11 + 1 + 4 + 1
-*/
-unsigned char base[BASE_SIZE];
-unsigned char bytes[4];
-long count = 1;
-
-void *IntToByte( long value );
-void InsertToBase( unsigned char input[] );
-
-// file
-char *buffer;
-int fsize;
-// record
-int new_key, new_pos, new_len;
-char new_st[12];
-// data
-const int TotalRecords = 10000000;
-int validRecords;
-// test
-int keys[10000000], key_num;
+* First message to the user.
+ */
+void usage_1(void) {
+    int order = DEFAULT_ORDER;
+	printf("B+ Tree of Order %d.\n", order);
+    printf("[Usage] bpt <order> <inputfile>\n");
+}
 
 
-/** Read and insert records into B+tree */
-void Read_Data_And_Insert();
+/* Second message to the user.
+ */
+void usage_2(void) {
+	printf("Enter any of the following commands after the prompt > :\n"
+	"\ti <k>  -- Insert <k> (an integer) as both key and value).\n"
+	"\ti <k> <v> -- Insert the value <v> (an integer) as the value of key <k> (an integer).\n"
+	"\tf <k>  -- Find the value under key <k>.\n"
+	"\tp <k> -- Print the path from the root to key k and its associated "
+           "value.\n"
+	"\tr <k1> <k2> -- Print the keys and values found in the range "
+			"[<k1>, <k2>\n"
+	"\td <k>  -- Delete key <k> and its associated value.\n"
+	"\tx -- Destroy the whole tree.  Start again with an empty tree of the "
+           "same order.\n"
+	"\tt -- Print the B+ tree.\n"
+	"\tl -- Print the keys of the leaves (bottom row of the tree).\n"
+	"\tv -- Toggle output of pointer addresses (\"verbose\") in tree and "
+           "leaves.\n"
+	"\tq -- Quit. (Or use Ctl-D or Ctl-C.)\n"
+	"\t? -- Print this help message.\n");
+}
 
 
-/** Show Help */
-void ShowHelp();
-void MainLoop();
+/* Brief usage note.
+ */
+void usage_3(void) {
+	printf("Usage: ./bpt [<order>]\n");
+	printf("\twhere %d <= order <= %d .\n", MIN_ORDER, MAX_ORDER);
+}
 
 
-int main () {
-    //
-    // unsigned char key[12];
-    //
-    // // IntToByte( count );
-    // // InsertToBase( fakeinput );
-    // char str[1000];
-    // FILE *pDataFile;
-    //
-    // int i = 0;
-    //
-    //
-    //
-    // pDataFile = fopen("../data/youtube.rec.50","r");
-    // while(fgets(str, sizeof(str), pDataFile) != NULL) {
-    //     if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
-    //         str[48] = '\0';
-    //         strcpy(key, str+37);
-    //         count++;
-    //     }
-    // }
-    // fclose(pDataFile);
+
+int main (int argc, char ** argv) {
+
+    	char * input_file;
+    	FILE * fp;
+    	node *root;
+    	char input_key[12];
+        char str[100000];
+        unsigned int input_key_2;
+    	char instruction;
+        unsigned int offset;
+        bool verbose_output = false;
+        int order = DEFAULT_ORDER;
+
+    	root = NULL;
 
 
-	// MainLoop (for presentation)
-	MainLoop();
+    	if (argc > 1) {
+    		order = atoi(argv[1]);
+    		if (order < MIN_ORDER || order > MAX_ORDER) {
+    			fprintf(stderr, "Invalid order: %d .\n\n", order);
+    			usage_3();
+    			exit(EXIT_FAILURE);
+    		}
+    	}
+
+        if (argc < 3) {
+            usage_1();
+            usage_2();
+        }
+
+    	if (argc > 2) {
+            printf("From File input b plus tree\n");
+    		input_file = argv[2];
+    		fp = fopen(input_file, "r");
+    		if (fp == NULL) {
+    			perror("Failure to open input file.");
+    			exit(EXIT_FAILURE);
+    		}
+            offset = ftell(fp);
+    		while ( !feof(fp) ) {
+
+                // if ( str[0] != '\0')  {
+                //     continue;
+                // }
+    			printf("Trying to insert:%u\n", offset);
+                // sscanf(str+1, "%s\n", input_key);
+                // printf("Trying to insert:%s %u\n", input_key, offset);
+                // root = insert(root, input_key, offset);
+
+                //Update offset
+                offset = ftell(fp);
+    		}
+    		fclose(fp);
+    		print_tree(root);
+            return EXIT_SUCCESS;
+    	}
+
+    	printf("> ");
+        char buffer[BUFFER_SIZE];
+        int count = 0;
+        bool line_consumed = false;
+    	while (scanf("%c", &instruction) != EOF) {
+            line_consumed = false;
+    		switch (instruction) {
+    		case 'd':
+    			// scanf("%s", input_key);
+    			// root = delete(root, input_key);
+    			// print_tree(root);
+    			break;
+    		case 'i':
+                fgets(buffer, BUFFER_SIZE, stdin);
+                line_consumed = true;
+                count = sscanf(buffer, "%s %u", input_key, &input_key_2);
+    			root = insert(root, input_key, input_key_2);
+    			print_tree(root);
+    			break;
+    		case 'f':
+    		case 'p':
+    			scanf("%s %u", input_key, &input_key_2 );
+    			find_and_print(root, input_key, instruction == 'p');
+    			break;
+    		case 'r':
+    			// scanf("%d %d", &input_key, &input_key_2);
+    			// if (input_key > input_key_2) {
+    			// 	int tmp = input_key_2;
+    			// 	input_key_2 = input_key;
+    			// 	input_key = tmp;
+    			// }
+    			// find_and_print_range(root, input_key, input_key_2, instruction == 'p');
+    			// break;
+    		case 'l':
+    			print_leaves(root);
+    			break;
+    		case 'q':
+    			while (getchar() != (int)'\n');
+    			return EXIT_SUCCESS;
+    			break;
+    		case 't':
+    			print_tree(root);
+    			break;
+    		case 'v':
+    			verbose_output = !verbose_output;
+    			break;
+    		case 'x':
+    			if (root)
+    				root = destroy_tree(root);
+    			print_tree(root);
+    			break;
+    		default:
+    			usage_2();
+    			break;
+    		}
+            if (!line_consumed)
+               while (getchar() != (int)'\n');
+    		printf("> ");
+    	}
+    	printf("\n");
+
+    	return EXIT_SUCCESS;
 
     return 0;
-}
-
-
-void *IntToByte( long value ) {
-
-    bytes[0] = (int)((value >> 24) & 0xFF);
-    bytes[1] = (int)((value >> 16) & 0xFF);
-    bytes[2] = (int)((value >> 8) & 0xFF);
-    bytes[3] = (int)(value & 0xFF);
-
-}
-
-
-void InsertToBase( unsigned char input[] ) {
-    int i = 0;
-
-    // Key value
-    for( i=0; i<11; i++ ) {
-        base[i] = input[i];
-    }
-
-    base[11] = '\0';
-
-    // ID
-    base[12] = bytes[0];
-    base[13] = bytes[1];
-    base[14] = bytes[2];
-    base[15] = bytes[3];
-
-    base[16] = '\0';
-}
-
-
-/** Read and insert records into B+tree */
-void Read_Data_And_Insert() {
-
-    char str[1000];
-    FILE *pDataFile;
-    pDataFile = fopen("../data/youtube.rec.50","r");
-
-    while(fgets(str, sizeof(str), pDataFile) != NULL) {
-        if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
-            str[48] = '\0';
-            printf("\nInserting the %d record, key:%s\n", validRecords, str+37 );
-            if (BPlusTree_Insert(str+37) == true) validRecords++;
-            if ( validRecords == 5 ) {
-                break;
-            }
-        }
-    }
-    fclose(pDataFile);
-
-}
-
-/** Show Help */
-void ShowHelp() {
-	printf("\nType your operation:\n");
-	printf("  0) Test Initialize\n");
-	printf("  1) Set Depth\n");
-	printf("  2) Set MaxChildNumber\n");
-	printf("  3) Build Tree\n");
-	printf("  4) Query on a key\n");
-    printf("  5) print tree, Debug use\n");
-	printf("  9) Quit\n");
-}
-
-void MainLoop() {
-
-    // ShowHelp();
-	double start_time, end_time;
-	int built = false;
-    int request;
-
-    // B+tree initialize
-	BPlusTree_Init();
-
-    while (1) {
-        ShowHelp();
-        scanf(" \n%d", &request);
-		switch (request) {
-			case 0: {
-				break;
-			}
-			case 1: {
-				// Set Depth
-				// printf("input depth: ");
-				// int depth;
-				// scanf("%d", &depth);
-				// int maxCh = 2;
-				// while (1) {
-				// 	int leaves = 1, i;
-				// 	for (i = 0; i < depth; i++) {
-				// 		leaves *= maxCh;
-				// 		if (leaves > TotalRecords) break;
-				// 	}
-				// 	if (leaves > TotalRecords) break;
-				// 	maxCh++;
-				// }
-				// printf("Desired depth = %d, calculated maxChildNumber = %d\n", depth, maxCh);
-				// BPlusTree_SetMaxChildNumber(maxCh);
-				break;
-			}
-			case 2: {
-				// Set MaxChildNumber
-				// printf("input MaxChildNumber: ");
-				// int maxCh;
-				// scanf("%d", &maxCh);
-				// BPlusTree_SetMaxChildNumber(maxCh);
-				break;
-			}
-			case 3: {
-				// Build B+tree
-				if (built == true) {
-					printf("You have built the B+tree\n");
-					break;
-				}
-				built = true;
-				Read_Data_And_Insert();
-				printf("Valid Records inserted on B+tree = %d\n", validRecords);
-				printf("Total number of B+tree nodes = %d\n", BPlusTree_GetTotalNodes());
-				break;
-			}
-			case 4: {
-				// Query on a key
-				// printf("input the key: ");
-				// unsigned int key;
-				// scanf("%u", &key);
-				// start_time = clock();
-				// BPlusTree_Query_Key(key);
-				// end_time = clock();
-				// printf("Query on a key, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
-				break;
-			}
-            case 5: {
-                BPlusTree_Print();
-                break;
-            }
-			case 9: return;
-			default: break;
-		}
-	}
-	BPlusTree_Destroy();
 }
