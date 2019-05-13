@@ -64,11 +64,10 @@ int main (int argc, char ** argv) {
     	char * input_file;
     	FILE * fp;
     	node *root;
-    	char input_key[12];
-        char str[100000];
-        unsigned int input_key_2;
+        char str[100];
     	char instruction;
-        unsigned int offset;
+        int i;
+        unsigned int offset = 0;
         bool verbose_output = false;
         int order = DEFAULT_ORDER;
 
@@ -97,20 +96,22 @@ int main (int argc, char ** argv) {
     			perror("Failure to open input file.");
     			exit(EXIT_FAILURE);
     		}
-            offset = ftell(fp);
-    		while ( !feof(fp) ) {
 
-                // if ( str[0] != '\0')  {
-                //     continue;
-                // }
-    			printf("Trying to insert:%u\n", offset);
-                // sscanf(str+1, "%s\n", input_key);
-                // printf("Trying to insert:%s %u\n", input_key, offset);
-                // root = insert(root, input_key, offset);
 
-                //Update offset
+            //get the file size & calculate the total block
+            fseek(fp, 0, SEEK_END);
+            int total_block = ftell(fp)/BLOCK_SIZE;
+            rewind(fp);
+
+            //insert the block min value
+            for ( i=1; i<=total_block; i++ ) {
+                fgets (str, 18, fp);
+                printf("Trying to insert:%s %u\n", str, offset);
+                root = insert(root, str, offset);
+                fseek(fp, 64000*i, SEEK_SET);
                 offset = ftell(fp);
-    		}
+            }
+
     		fclose(fp);
     		print_tree(root);
             return EXIT_SUCCESS;

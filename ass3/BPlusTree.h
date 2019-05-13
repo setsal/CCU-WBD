@@ -21,7 +21,7 @@ typedef struct node {
 
 extern void print_leaves(node *const);
 extern void print_tree(node *const);
-extern void find_and_print(node *const, char *, bool);
+extern void find_and_print(node *const, char *, int);
 extern node *insert( node *, char *, unsigned int );
 extern node *destroy_tree(node *);
 

@@ -39,11 +39,10 @@ int main () {
     unsigned int validRecords = 1;
 
 
-    pDataFile = fopen("../data/youtube.rec.tiny","r");
+    pDataFile = fopen("../data/youtube.rec.small","r");
     while(fgets(str, sizeof(str), pDataFile) != NULL) {
         if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
             str[48] = '\0';
-
 
             //create key value
             IntToByte(validRecords);
@@ -52,27 +51,27 @@ int main () {
             InsertToBase(str+37);
 
             //Insert to Block
-            printf("Inserting %u record: %s", validRecords, str+37);
+            printf("%d %s", validRecords, str+37);
             InsertToBlock(str+37);
             printf("\n");
             validRecords++;
         }
     }
     fclose(pDataFile);
-    //store in file
+    // store in file
     FILE *fp;
-    fp = fopen("../data/blockfile", "wb+");
+    fp = fopen("../data/blockfile.small", "wb+");
 
     Block *curr = head;
     int i;
     while( curr != NULL ) {
-        // printf("123");
+        printf("key:%s\n", curr->blockptr);
         fwrite(curr->blockptr, curr->blockSize, 1, fp);
         printf("%d\n", curr->blockSize);
         for ( i=curr->blockSize; i<BLOCK_SIZE; i++) {
             fputc(0, fp);
         }
-        // printf("%d\n", ftell(fp));
+        printf("%d\n", ftell(fp));
         curr = curr->next;
     }
     fclose(fp);
@@ -123,17 +122,23 @@ void InitBlock() {
 }
 
 Block *FindBlock( unsigned char key[] ) {
+
     Block *currentptr;
     Block *preptr;
+
     currentptr = head;
+    preptr = currentptr;
 
     if ( currentptr->next == NULL ) {  //First Block
         return head;
     }
     else {
-        while ( strcmp( key, currentptr->blockptr ) > 0 ) {
+        while ( strcmp( key, currentptr->blockptr ) > 0  ) {
             preptr = currentptr;
             currentptr = currentptr->next;
+            if ( currentptr->next == NULL ) {
+                return currentptr;
+            }
         }
         return preptr;
     }
@@ -141,36 +146,72 @@ Block *FindBlock( unsigned char key[] ) {
 }
 
 void SplitBlock( Block *new, Block *old ) {
+
     int i;
     char *newptr = new->blockptr;
     char *oldptr = old->blockptr;
 
+    // printf("\n---- \n");
+    // for ( i=0; i<old->blockSize; i++ ) {
+    //     if(i%17==0){
+    //         printf("\n");
+    //     }
+    //     printf(" %c", *(oldptr+i));
+    // }
+    // printf("\n---- \n");
+
+
     oldptr = oldptr + 31994;
-    for ( i=0; i<31994; i++ ) {
-        *oldptr++ = *newptr++;
+
+    for ( i=0; i<old->blockSize; i++ ) {
+        *newptr++ = *oldptr++;
     }
-    old->blockSize = old->blockSize - 31994;
-    new->blockSize = 31994;
+
+    new->blockSize = old->blockSize - 31994;
+    old->blockSize = 31994;
+
+    // printf("\n -- AFTER SPLIT -- \n");
+    // char *tmpptr = old->blockptr;
+    // for ( i=0; i<old->blockSize; i++ ) {
+    //     if(i%17==0){
+    //         printf("\n");
+    //     }
+    //     printf(" %c", *(tmpptr+i));
+    // }
+    // printf("\n---- \n");
+    // tmpptr = new->blockptr;
+    //
+    // for ( i=0; i<new->blockSize; i++ ) {
+    //     if(i%17==0){
+    //         printf("\n");
+    //     }
+    //     printf(" %c", *(tmpptr+i));
+    // }
+    // printf("\n---- \n");
+    //
 }
 
 void InsertToBlock( unsigned char key[] ) {
-
+    // printf("\nkey%s\n", key);
     Block *TargetBlock = FindBlock(key);
+
     char *TargetBlockPtr = TargetBlock->blockptr;
     int i = 0;
     int insertPoint;
 
     if ( TargetBlock->blockSize + 17 > BLOCK_SIZE ) {
 
-
         // Split the block
         Block *NewBlock = malloc(sizeof(Block));
         NewBlock->blockptr = malloc(BLOCK_SIZE);
         NewBlock->next = NULL;
-
+        // printf("Target BLOCK:%s", TargetBlock->blockptr);
         SplitBlock( NewBlock, TargetBlock );
+
         // Link the old block to new
         TargetBlock->next = NewBlock;
+        printf("SPLIT insert: %s", key);
+        InsertToBlock(key);
 
     }
     else {

@@ -38,7 +38,7 @@ int height(node *const root);
 int path_to_root(node *const root, node *child);
 void print_leaves(node *const root);
 void print_tree(node *const root);
-void find_and_print(node *const root, char *key, bool verbose);
+void find_and_print(node *const root, char *key, int verbose);
 
 node *find_leaf(node *const root, char *key, bool verbose);
 // record * find(node *root, char *key, bool verbose, node ** leaf_out);
@@ -206,7 +206,7 @@ void print_tree(node *const root) {
 /* Finds the record under a given key and prints an
  * appropriate message to stdout.
  */
-void find_and_print(node *const root, char *key, bool verbose) {
+void find_and_print(node *const root, char *key, int verbose) {
     // node *leaf = NULL;
 	// record * r = find(root, key, verbose, NULL);
 	// if (r == NULL)
