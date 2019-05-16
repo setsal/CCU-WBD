@@ -22,6 +22,8 @@
 
 // Constant for optional command-line input with "i" command.
 #define BUFFER_SIZE 256
+#define BLOCK_SIZE 64000
+#define BASE_SIZE 17
 
 
 
@@ -29,8 +31,9 @@
 int order = DEFAULT_ORDER;
 node *queue = NULL;
 bool verbose_output = false;
-const char *field[6] = { "url:https://www.youtube.com/watch?v=", "title:", "content:", "viewCount:", "res:", "duration:" };
+const char *field[6] = { "\turl:https://www.youtube.com/watch?v=", "\ttitle:", "\tcontent:", "\tviewCount:", "\tres:", "\tduration:" };
 unsigned int pDbFileMapOffset, pDbFileOffset;
+unsigned char blockbuffer[BLOCK_SIZE];
 
 
 
@@ -41,9 +44,10 @@ int path_to_root(node *const root, node *child);
 void print_leaves(node *const root);
 void print_tree(node *const root);
 void find_and_print(node *const root, unsigned char *key, int verbose);
-
 node *find_leaf(node *const root, unsigned char *key, bool verbose);
-// record * find(node *root, char *key, bool verbose, node ** leaf_out);
+record *find(node *root, unsigned char *key, bool verbose, node ** leaf_out);
+record *find_close(node *root, unsigned char *key, bool verbose, node ** leaf_out);
+
 int cut(int length);
 
 
@@ -60,7 +64,6 @@ node *insert_into_parent(node *root, node *left, unsigned char *key, node *right
 node *insert_into_new_root(node *left, unsigned char *key, node *right);
 node *start_new_tree( unsigned char *key, record *pointer );
 node *insert( node *root, unsigned char *key, unsigned int offset );
-record *find(node *root, unsigned char *key, bool verbose, node ** leaf_out);
 
 
 
@@ -213,10 +216,67 @@ void find_and_print(node *const root, unsigned char *key, int verbose) {
     node *leaf = NULL;
 	record * r = find(root, key, verbose, NULL);
 	unsigned char s[20];
+	char str[500];
 	int i;
 
-	if (r == NULL)
-		printf("Record not found under key %s.\n", key);
+	if (r == NULL) {
+		printf("Record not found under key %s. Trying search in the closet block.\n", key);
+		record * r = find_close(root, key, verbose, NULL);
+		if ( r == NULL ) {
+			printf("Still not found. Check your key value is exist in origin data or not?\n");
+		}
+		else {
+			FILE *fp;
+			fp = fopen("../data/mid/blockfile", "r");
+			fseek(fp, r->offset, SEEK_SET);
+			fread(blockbuffer, sizeof(char), BLOCK_SIZE, fp);
+			fclose(fp);
+
+			unsigned char *blockptr = blockbuffer;
+			while ( strcmp(blockptr, key) != 0 ) {
+				blockptr+=17;
+			}
+
+
+			blockptr+=12;
+			for ( i=0; i<4; i++){
+				s[i] = *blockptr++;
+			}
+
+			// Get db file Map offset
+			pDbFileMapOffset = s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3];
+			printf("Record find! -- key %s, pDbFileMapOffset %u, ",  key, pDbFileMapOffset);
+
+			// Get db file Map Value
+			fp = fopen("../data/mid/dbfilemap","r");
+			fseek(fp, pDbFileMapOffset, SEEK_SET);
+			fscanf(fp, "%u", &pDbFileOffset);
+			printf("pDbFileOffset %u.\n", pDbFileOffset);
+			fclose(fp);
+
+			// Get db file Value
+			fp = fopen("../data/mid/dbfile","r");
+			fseek(fp, pDbFileOffset, SEEK_SET);
+			fgets( str, 500, fp );
+			fclose(fp);
+
+			// Print the youtube data detail
+			char *tmp = str;
+			int counter = 0;
+			printf("[\n%s", field[0]);
+			for ( i=0; i<strlen(str); i++ ) {
+				if ( str[i] == '\t' ) {
+					counter++;
+					printf("\n%s", field[counter]);
+				}
+				else {
+					printf("%c", str[i]);
+				}
+			}
+			printf("]\n");
+
+		}
+	}
 	else {
 		printf("Record at %p -- key %s, value %d, ", r, key, r->offset);
 
@@ -241,14 +301,13 @@ void find_and_print(node *const root, unsigned char *key, int verbose) {
 		// Get db file Value
 		fp = fopen("../data/mid/dbfile","r");
 		fseek(fp, pDbFileOffset, SEEK_SET);
-		char str[500];
 		fgets( str, 500, fp );
 		fclose(fp);
 
 		// Print the youtube data detail
 		char *tmp = str;
-		int i, counter = 0;
-		printf("%s", field[0]);
+		int counter = 0;
+		printf("[\n%s", field[0]);
 		for ( i=0; i<strlen(str); i++ ) {
 			if ( str[i] == '\t' ) {
 				counter++;
@@ -258,6 +317,7 @@ void find_and_print(node *const root, unsigned char *key, int verbose) {
 				printf("%c", str[i]);
 			}
 		}
+		printf("]\n");
 
 	}
 
@@ -296,14 +356,35 @@ record *find(node *root, unsigned char *key, bool verbose, node ** leaf_out) {
 
 	leaf = find_leaf(root, key, verbose);
 
-    /* If root != NULL, leaf must have a value, even
-     * if it does not contain the desired key.
-     * (The leaf holds the range of keys that would
-     * include the desired key.)
-     */
 
 	for (i = 0; i < leaf->num_keys; i++)
 	   if ( strcmp( leaf->keys[i], key ) == 0 ) break;
+    if (leaf_out != NULL) {
+        *leaf_out = leaf;
+    }
+	if (i == leaf->num_keys)
+		return NULL;
+	else
+		return (record *)leaf->pointers[i];
+}
+
+
+
+record *find_close(node *root, unsigned char *key, bool verbose, node ** leaf_out) {
+    if (root == NULL) {
+        if (leaf_out != NULL) {
+            *leaf_out = NULL;
+        }
+        return NULL;
+    }
+
+	int i = 0;
+    node *leaf = NULL;
+
+	leaf = find_leaf(root, key, verbose);
+
+	for (i = 0; i < leaf->num_keys; i++)
+	   if ( strcmp( leaf->keys[i], key ) <= 0 ) break;
     if (leaf_out != NULL) {
         *leaf_out = leaf;
     }

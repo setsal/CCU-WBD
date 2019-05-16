@@ -6,6 +6,7 @@
 #include <time.h>
 #include <math.h>
 #include "BPlusTree.h"
+#include "Block.h"
 
 
 #define MIN_ORDER 3
@@ -127,6 +128,7 @@ int main (int argc, char ** argv) {
             line_consumed = false;
     		switch (instruction) {
     		case 'd':
+                hello();
     			// scanf("%s", input_key);
     			// root = delete(root, input_key);
     			// print_tree(root);
@@ -180,7 +182,7 @@ int main (int argc, char ** argv) {
     		}
             if (!line_consumed)
                while (getchar() != (int)'\n');
-    		printf("> ");
+    		printf("[setsal DB]> ");
     	}
     	printf("\n");
 
