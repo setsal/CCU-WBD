@@ -64,7 +64,9 @@ int main (int argc, char ** argv) {
     	char * input_file;
     	FILE * fp;
     	node *root;
-        char str[100];
+        unsigned char str[100];
+        char input_key[20];
+        unsigned int input_key_2;
     	char instruction;
         int i;
         unsigned int offset = 0;
@@ -114,10 +116,10 @@ int main (int argc, char ** argv) {
 
     		fclose(fp);
     		print_tree(root);
-            return EXIT_SUCCESS;
+            // return EXIT_SUCCESS;
     	}
 
-    	printf("> ");
+    	printf("[setsal DB]> ");
         char buffer[BUFFER_SIZE];
         int count = 0;
         bool line_consumed = false;
@@ -157,6 +159,10 @@ int main (int argc, char ** argv) {
     			while (getchar() != (int)'\n');
     			return EXIT_SUCCESS;
     			break;
+            case 's':
+                scanf("\n%s", input_key);
+                find_and_print( root, input_key, 0 );
+                break;
     		case 't':
     			print_tree(root);
     			break;

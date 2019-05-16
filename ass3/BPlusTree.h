@@ -11,7 +11,7 @@ typedef struct record {
 
 typedef struct node {
 	void ** pointers;
-	char *keys[DEFAULT_ORDER-1];
+	unsigned char *keys[DEFAULT_ORDER-1];
 	struct node *parent;
 	bool is_leaf;
 	int num_keys;
@@ -21,8 +21,8 @@ typedef struct node {
 
 extern void print_leaves(node *const);
 extern void print_tree(node *const);
-extern void find_and_print(node *const, char *, int);
-extern node *insert( node *, char *, unsigned int );
+extern void find_and_print(node *const, unsigned char *, int);
+extern node *insert( node *, unsigned char *, unsigned int );
 extern node *destroy_tree(node *);
 
 #endif

@@ -1,4 +1,4 @@
-#define BLOCK_SIZE 60
+#define BLOCK_SIZE 64000
 #define BASE_SIZE 17
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,35 +33,92 @@ int main () {
 
 
     char str[1000];
-    FILE *pDataFile;
+    char url[200], title[500], content[500], viewCount[10], res[10], duration[10];
+    char *ptr;
+    FILE *pDataFile, *pDbFileMap, *pDbFile;
 
     InitBlock();
     unsigned int validRecords = 1;
+    unsigned int pDbFileOffset, pDbFileMapOffset;
 
 
-    pDataFile = fopen("../data/youtube.rec","r");
-    while(fgets(str, sizeof(str), pDataFile) != NULL) {
-        if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
-            str[48] = '\0';
+    pDataFile = fopen("../data/youtube.rec.mid","r");
+    pDbFileMap = fopen("../data/mid/dbfilemap","w");
+    pDbFile = fopen("../data/mid/dbfile","w");
 
-            //create key value
-            IntToByte(validRecords);
+    while( fgets(str, sizeof(str), pDataFile) != NULL ) {
 
-            //Create Small Base
-            InsertToBase(str+37);
+        if ( str[0] == '@' && str[1] == '\n' ) {
+
+            pDbFileOffset = ftell(pDbFile);
+
+            /* --- Create DB FILE --- */
+            fwrite(url, 1, strlen(url), pDbFile);
+            fputc('\t', pDbFile);
+            fwrite(title, 1, strlen(title), pDbFile);
+            fputc('\t', pDbFile);
+            fwrite(content, 1, strlen(content), pDbFile);
+            fputc('\t', pDbFile);
+            fwrite(viewCount, 1, strlen(viewCount), pDbFile);
+            fputc('\t', pDbFile);
+            fwrite(res, 1, strlen(res), pDbFile);
+            fputc('\t', pDbFile);
+            fwrite(duration, 1, strlen(duration), pDbFile);
+            fputc('\n', pDbFile);
+
+
+            /* --- Create DB FILE MAP --- */
+            pDbFileMapOffset = ftell(pDbFileMap);
+            fprintf( pDbFileMap, "%u\n", pDbFileOffset);
+
+
+            /* --- Create Block FILE --- */
+            // create key value
+            IntToByte( pDbFileMapOffset );
+
+            // Create Small Base
+            InsertToBase(url);
 
             //Insert to Block
-            printf("%d %s", validRecords, str+37);
-            InsertToBlock(str+37);
+            printf("%d %s\n", pDbFileMapOffset, url);
+            InsertToBlock(url);
             // printBlock();
-            printf("\n");
             validRecords++;
         }
+        else if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
+            str[48] = '\0';
+            strcpy( url, str+37 );
+
+        }
+        else if ( str[0] == '@' && str[1] == 't' && str[2] == 'i' && str[3] == 't' ) {
+            strcpy( title, str+7 );
+            title[strlen(title)-1] = '\0';
+        }
+        else if ( str[0] == '@' && str[1] == 'c' && str[2] == 'o' && str[3] == 'n' ) {
+            strcpy( content, str+9 );
+            content[strlen(content)-1] = '\0';
+        }
+        else if ( str[0] == '@' && str[1] == 'v' && str[2] == 'i' && str[3] == 'e' ) {
+            strcpy( viewCount, str+11 );
+            viewCount[strlen(viewCount)-1] = '\0';
+        }
+        else if ( str[0] == '@' && str[1] == 'r' && str[2] == 'e' && str[3] == 's' ) {
+            strcpy( res, str+5 );
+            res[strlen(res)-1] = '\0';
+        }
+        else if ( str[0] == '@' && str[1] == 'd' && str[2] == 'u' && str[3] == 'r' ) {
+            strcpy( duration, str+10 );
+            duration[strlen(duration)-1] = '\0';
+        }
     }
+
     fclose(pDataFile);
-    // store in file
+    fclose(pDbFileMap);
+    fclose(pDbFile);
+
+    // write record in blockfile
     FILE *fp;
-    fp = fopen("../data/blockfile.origin", "wb+");
+    fp = fopen("../data/mid/blockfile", "wb+");
 
     Block *curr = head;
     int i;
@@ -75,8 +132,9 @@ int main () {
         curr = curr->next;
     }
     fclose(fp);
-
+    printf("Initial finish!\n");
     return 0;
+
 }
 
 
@@ -86,7 +144,8 @@ void IntToByte( unsigned int value ) {
     key[1] = (int)((value >> 16) & 0xFF);
     key[2] = (int)((value >> 8) & 0xFF);
     key[3] = (int)(value & 0xFF);
-    //printf("%x %x %x %x\n", key[0], key[1], key[2], key[3]);
+
+    // printf("%u, %x %x %x %x\n", value, key[0], key[1], key[2], key[3]);
 
 }
 
@@ -151,14 +210,14 @@ void SplitBlock( Block *new, Block *old ) {
     char *newptr = new->blockptr;
     char *oldptr = old->blockptr;
 
-    oldptr = oldptr + 34;
+    oldptr = oldptr + 31994;
 
     for ( i=0; i<old->blockSize; i++ ) {
         *newptr++ = *oldptr++;
     }
 
-    new->blockSize = old->blockSize - 34;
-    old->blockSize = 34;
+    new->blockSize = old->blockSize - 31994;
+    old->blockSize = 31994;
 }
 
 void InsertToBlock( unsigned char key[] ) {
