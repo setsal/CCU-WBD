@@ -202,82 +202,47 @@ void print_tree(node *const root) {
 
 void find_and_print(node *const root, unsigned char *key, int verbose) {
     node *leaf = NULL;
+	FILE *fp;
 	record * r = find(root, key, verbose, NULL);
 	unsigned char s[20];
 	char str[500];
-	int i;
+	int i, offset = 0, isFind = 1;
 
 	if (r == NULL) {
-		printf("Record not found under key %s. Trying search in the closet block.\n", key);
-		record * r = find_close(root, key, verbose, NULL);
-		if ( r == NULL ) {
-			printf("Still not found. Check your key value is exist in origin data or not?\n");
+		printf("[INFO] Record not found under key %s. Trying search in the closet block.\n", key);
+		// record * r = find_close(root, key, verbose, NULL);
+
+		leaf = find_leaf(root, key, verbose);
+		for (i = 0; i < leaf->num_keys; i++)
+		   if ( strcmp( leaf->keys[i], key ) <= 0 ) break;
+
+		printf("[INFO] In the closet block: %s\n", leaf->keys[i]);
+
+		// Do sequence search in the block
+		unsigned char *blockptr = leaf->block[i]->blockptr;
+		while ( strcmp(blockptr, key) != 0 ) {
+			if( offset+17 > leaf->block[i]->blockSize ) {
+				isFind = 0;
+				break;
+			}
+			blockptr+=17;
+			offset+=17;
 		}
-		else {
-			FILE *fp;
-			fp = fopen("../data/mid/blockfile", "r");
-			fseek(fp, r->offset, SEEK_SET);
-			fread(blockbuffer, sizeof(char), BLOCK_SIZE, fp);
-			fclose(fp);
-
-			unsigned char *blockptr = blockbuffer;
-			while ( strcmp(blockptr, key) != 0 ) {
-				blockptr+=17;
-			}
 
 
-			blockptr+=12;
-			for ( i=0; i<4; i++){
-				s[i] = *blockptr++;
-			}
-
-			// Get db file Map offset
-			pDbFileMapOffset = s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3];
-			printf("Record find! -- key %s, pDbFileMapOffset %u, ",  key, pDbFileMapOffset);
-
-			// Get db file Map Value
-			fp = fopen("../data/mid/dbfilemap","r");
-			fseek(fp, pDbFileMapOffset, SEEK_SET);
-			fscanf(fp, "%u", &pDbFileOffset);
-			printf("pDbFileOffset %u.\n", pDbFileOffset);
-			fclose(fp);
-
-			// Get db file Value
-			fp = fopen("../data/mid/dbfile","r");
-			fseek(fp, pDbFileOffset, SEEK_SET);
-			fgets( str, 500, fp );
-			fclose(fp);
-
-			// Print the youtube data detail
-			char *tmp = str;
-			int counter = 0;
-			printf("[\n%s", field[0]);
-			for ( i=0; i<strlen(str); i++ ) {
-				if ( str[i] == '\t' ) {
-					counter++;
-					printf("\n%s", field[counter]);
-				}
-				else {
-					printf("%c", str[i]);
-				}
-			}
-			printf("]\n");
-
+		if ( isFind == 0 ) {
+			printf("[Exception] Still not found. Check your key value is exist in origin data or not?\n");
+			return;
 		}
-	}
-	else {
-		printf("Record at %p -- key %s, value %d, ", r, key, r->offset);
 
-		FILE *fp;
-		fp = fopen("../data/mid/blockfile", "r");
-		fseek(fp, r->offset, SEEK_SET);
-		fread(s, sizeof(char), 17, fp);
-		fclose(fp);
+		blockptr+=12;
+		for ( i=0; i<4; i++){
+			s[i] = *blockptr++;
+		}
 
 		// Get db file Map offset
-		pDbFileMapOffset = s[12] << 24 | s[13] << 16 | s[14] << 8 | s[15];
-		printf("pDbFileMapOffset %u, ", pDbFileMapOffset);
-
+		pDbFileMapOffset = s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3];
+		printf("[SUCCESS] Record find -- key %s, pDbFileMapOffset %u, ",  key, pDbFileMapOffset);
 
 		// Get db file Map Value
 		fp = fopen("../data/mid/dbfilemap","r");
@@ -293,6 +258,38 @@ void find_and_print(node *const root, unsigned char *key, int verbose) {
 		fclose(fp);
 
 		// Print the youtube data detail
+		char *tmp = str;
+		int counter = 0;
+		printf("[\n%s", field[0]);
+		for ( i=0; i<strlen(str); i++ ) {
+			if ( str[i] == '\t' ) {
+				counter++;
+				printf("\n%s", field[counter]);
+			}
+			else {
+				printf("%c", str[i]);
+			}
+		}
+		printf("]\n");
+
+	}
+	else {
+		printf("Record at %p -- key %s, value %d\n", r, key, r->offset);
+
+		// Get db file Map Value
+		fp = fopen("../data/mid/dbfilemap","r");
+		fseek(fp, r->offset, SEEK_SET);
+		fscanf(fp, "%u", &pDbFileOffset);
+		printf("pDbFileOffset %u.\n", pDbFileOffset);
+		fclose(fp);
+		//
+		// // Get db file Value
+		fp = fopen("../data/mid/dbfile","r");
+		fseek(fp, pDbFileOffset, SEEK_SET);
+		fgets( str, 500, fp );
+		fclose(fp);
+
+		// // Print the youtube data detail
 		char *tmp = str;
 		int counter = 0;
 		printf("[\n%s", field[0]);
@@ -568,6 +565,7 @@ node *splitting_leaf( node *root, node *leaf ) {
 
 	for (i = split, j = 0; i < leaf->num_keys; i++, j++) {
 		new_leaf->pointers[j] = leaf->pointers[i];
+		new_leaf->keys[j]= malloc(12);
 		strcpy ( new_leaf->keys[j] , leaf->keys[i] );
 		new_leaf->block[j] = leaf->block[i];
 		new_leaf->num_keys++;
@@ -587,15 +585,6 @@ node *splitting_leaf( node *root, node *leaf ) {
 
 	new_leaf->parent = leaf->parent;
 
-	printf("\n --- OLD LEAF --- \n");
-	for ( i=0; i<leaf->num_keys; i++) {
-		printf("%s ", leaf->block[i]->blockptr );
-	}
-	printf("\n --- NEW LEAF --- \n");
-	for ( i=0; i<new_leaf->num_keys; i++) {
-		printf("%s ", new_leaf->block[i]->blockptr );
-	}
-	printf("\n --- SPLIT DEBUG --- \n");
 
 
 	return insert_into_parent(root, leaf, new_leaf->keys[0], new_leaf);
