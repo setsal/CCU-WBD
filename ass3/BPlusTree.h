@@ -16,6 +16,7 @@ typedef struct node {
 	bool is_leaf;
 	int num_keys;
 	struct node *next; // Used for queue.
+	struct block *block[DEFAULT_ORDER-1];
 } node;
 
 

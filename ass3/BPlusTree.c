@@ -1,4 +1,5 @@
 #include "BPlusTree.h"
+#include "Block.h"
 #include <stdbool.h>
 #ifdef _WIN32
 #define bool char
@@ -35,7 +36,19 @@ const char *field[6] = { "\turl:https://www.youtube.com/watch?v=", "\ttitle:", "
 unsigned int pDbFileMapOffset, pDbFileOffset;
 unsigned char blockbuffer[BLOCK_SIZE];
 
+// BLOCK GLOBALS
+unsigned char base[BASE_SIZE];
+unsigned char baseKey[4];
 
+//temp used
+Block* tmpBlock;
+unsigned char *tmpptr;
+
+// BLOCK function
+void insert_into_block( Block *TargetBlock, unsigned char base[] );
+Block *start_new_block();
+void buildBase( unsigned char *rid );
+void IntToByte( unsigned int value );
 
 void enqueue(node *new_node);
 node *dequeue(void);
@@ -84,9 +97,6 @@ void enqueue(node *new_node) {
 }
 
 
-/* Helper function for printing the
- * tree out.  See print_tree.
- */
 node *dequeue(void) {
 	node *n = queue;
 	queue = queue->next;
@@ -95,10 +105,6 @@ node *dequeue(void) {
 }
 
 
-/* Prints the bottom row of keys
- * of the tree (with their respective
- * pointers, if the verbose_output flag is set.
- */
 void print_leaves(node *const root) {
 	if (root == NULL) {
 		printf("Empty tree.\n");
@@ -127,10 +133,6 @@ void print_leaves(node *const root) {
 }
 
 
-/* Utility function to give the height
- * of the tree, which length in number of edges
- * of the path from the root to any leaf.
- */
 int height(node *const root) {
 	int h = 0;
 	node *c = root;
@@ -141,9 +143,7 @@ int height(node *const root) {
 	return h;
 }
 
-/* Utility function to give the length in edges
- * of the path from any node to the root.
- */
+
 int path_to_root(node *const root, node *child) {
 	int length = 0;
 	node *c = child;
@@ -155,15 +155,6 @@ int path_to_root(node *const root, node *child) {
 }
 
 
-/* Prints the B+ tree in the command
- * line in level (rank) order, with the
- * keys in each node and the '|' symbol
- * to separate nodes.
- * With the verbose_output flag set.
- * the values of the pointers corresponding
- * to the keys also appear next to their respective
- * keys, in hexadecimal notation.
- */
 void print_tree(node *const root) {
 
 	node *n = NULL;
@@ -209,9 +200,6 @@ void print_tree(node *const root) {
 }
 
 
-/* Finds the record under a given key and prints an
- * appropriate message to stdout.
- */
 void find_and_print(node *const root, unsigned char *key, int verbose) {
     node *leaf = NULL;
 	record * r = find(root, key, verbose, NULL);
@@ -323,6 +311,7 @@ void find_and_print(node *const root, unsigned char *key, int verbose) {
 
 }
 
+
 node *find_leaf(node *const root, unsigned char *key, bool verbose) {
 	if (root == NULL) {
 		return root;
@@ -340,9 +329,7 @@ node *find_leaf(node *const root, unsigned char *key, bool verbose) {
 	return c;
 }
 
-/* Finds and returns the record to which
- * a key refers.
- */
+
 record *find(node *root, unsigned char *key, bool verbose, node ** leaf_out) {
     if (root == NULL) {
         if (leaf_out != NULL) {
@@ -369,7 +356,6 @@ record *find(node *root, unsigned char *key, bool verbose, node ** leaf_out) {
 }
 
 
-
 record *find_close(node *root, unsigned char *key, bool verbose, node ** leaf_out) {
     if (root == NULL) {
         if (leaf_out != NULL) {
@@ -394,9 +380,7 @@ record *find_close(node *root, unsigned char *key, bool verbose, node ** leaf_ou
 		return (record *)leaf->pointers[i];
 }
 
-/* Finds the appropriate place to
- * split a node that is too big into two.
- */
+
 int cut(int length) {
 	if (length % 2 == 0)
 		return length/2;
@@ -406,10 +390,6 @@ int cut(int length) {
 
 
 // INSERTION
-
-/* Creates a new record to hold the value
- * to which a key refers.
- */
 record * make_record(unsigned int value) {
 	record * new_record = (record *)malloc(sizeof(record));
 	if (new_record == NULL) {
@@ -423,22 +403,25 @@ record * make_record(unsigned int value) {
 }
 
 
-/* Creates a new general node, which can be adapted
- * to serve as either a leaf or an internal node.
- */
 node *make_node(void) {
+
 	node *new_node;
+	printf("MAKE NODE123\n");
 	new_node = malloc(sizeof(node));
+	printf("MAKE NODE2\n");
 	if (new_node == NULL) {
 		perror("Node creation.");
 		exit(EXIT_FAILURE);
 	}
-
 	new_node->pointers = malloc(order * sizeof(void *));
 	if (new_node->pointers == NULL) {
 		perror("New node pointers array.");
 		exit(EXIT_FAILURE);
 	}
+
+
+	new_node->block[0] = malloc(sizeof(Block));
+	new_node->block[0]->blockSize = 0;
 	new_node->is_leaf = false;
 	new_node->num_keys = 0;
 	new_node->parent = NULL;
@@ -446,9 +429,30 @@ node *make_node(void) {
 	return new_node;
 }
 
-/* Creates a new leaf by creating a node
- * and then adapting it appropriately.
- */
+node *make_new_root_node(void) {
+
+	node *new_node;
+	printf("456");
+	new_node = malloc(sizeof(node));
+	printf("123");
+	if (new_node == NULL) {
+		perror("Node creation.");
+		exit(EXIT_FAILURE);
+	}
+	new_node->pointers = malloc(order * sizeof(void *));
+	if (new_node->pointers == NULL) {
+		perror("New node pointers array.");
+		exit(EXIT_FAILURE);
+	}
+
+	new_node->is_leaf = false;
+	new_node->num_keys = 0;
+	new_node->parent = NULL;
+	new_node->next = NULL;
+	return new_node;
+}
+
+
 node *make_leaf(void) {
 	node *leaf = make_node();
 	leaf->is_leaf = true;
@@ -456,10 +460,6 @@ node *make_leaf(void) {
 }
 
 
-/* Helper function used in insert_into_parent
- * to find the index of the parent's pointer to
- * the node to the left of the key to be inserted.
- */
 int get_left_index(node *parent, node *left) {
 
 	int left_index = 0;
@@ -469,40 +469,144 @@ int get_left_index(node *parent, node *left) {
 	return left_index;
 }
 
-/* Inserts a new pointer to a record and its corresponding
- * key into a leaf.
- * Returns the altered leaf.
- */
+
 node *insert_into_leaf(node *leaf, unsigned char *key, record *pointer ) {
 
-	int i, insertion_point;
-	insertion_point = 0;
-	while (insertion_point < leaf->num_keys && strcmp( leaf->keys[insertion_point], key ) < 0 )
-		insertion_point++;
+	int i, insertion_point = 0;
 
 
-	for (i = leaf->num_keys; i > insertion_point; i--) {
-		leaf->keys[i] = leaf->keys[i - 1];
-		leaf->pointers[i] = leaf->pointers[i - 1];
+	// find block insert point
+	for ( i=0; i<leaf->num_keys; i++ ) {
+		if ( strcmp( leaf->block[i]->blockptr, key ) < 0 ) {
+			insertion_point = i;
+		}
+		else {
+			break;
+		}
 	}
 
-	leaf->keys[insertion_point] = malloc(12);
-	strcpy( leaf->keys[insertion_point], key );
-	leaf->pointers[insertion_point] = pointer;
-	leaf->num_keys++;
-	return leaf;
+	if ( leaf->block[insertion_point]->blockSize + 17 < BLOCK_SIZE ) {
+		printf("Insert into block %d - %s, %u\n", insertion_point, key, pointer->offset );
+		IntToByte( pointer->offset );
+		buildBase( key );
+		insert_into_block( leaf->block[insertion_point], base );
+
+		// Change Now Key Value
+		strcpy ( leaf->keys[insertion_point], leaf->block[insertion_point]->blockptr );
+		return leaf;
+	}
+	else {
+		printf("NEED SPLIT\n");
+		//split and add to b plus tree
+		tmpBlock = split_block( leaf->block[insertion_point], base );
+
+
+		//Change the new key values
+		tmpptr = tmpBlock->blockptr;
+		tmpptr+=12;
+		for ( i=0; i<4; i++){
+			baseKey[i] = *tmpptr++;
+		}
+
+		// Get New offset
+		pDbFileMapOffset = baseKey[0] << 24 | baseKey[1] << 16 | baseKey[2] << 8 | baseKey[3];
+		record *new_pointer = make_record(pDbFileMapOffset);
+
+		// Renew insert point to zero for B plus tree
+		insertion_point = 0;
+		while (insertion_point < leaf->num_keys && strcmp( leaf->keys[insertion_point], tmpBlock->blockptr ) < 0 )
+			insertion_point++;
+
+
+		printf("Insert new split node to blus tree node %d\n", insertion_point);
+
+		for (i = leaf->num_keys; i > insertion_point; i--) {
+			leaf->keys[i] = leaf->keys[i - 1];
+			leaf->block[i] = leaf->block[i - 1];
+			leaf->pointers[i] = leaf->pointers[i - 1];
+		}
+
+		leaf->keys[insertion_point] = malloc(12);
+		leaf->block[insertion_point] = tmpBlock;
+		strcpy( leaf->keys[insertion_point], tmpBlock->blockptr );
+		leaf->pointers[insertion_point] = new_pointer;
+		leaf->num_keys++;
+
+
+		// split done, then insert again
+		insertion_point = 0;
+		for ( i=0; i<leaf->num_keys; i++ ) {
+			if ( strcmp( leaf->block[i]->blockptr, key ) < 0 ) {
+				insertion_point = i;
+			}
+			else {
+				break;
+			}
+		}
+		printf("Insert into block %d, %s, %u\n", insertion_point, key, pointer->offset );
+		IntToByte( pointer->offset );
+		buildBase( key );
+		insert_into_block( leaf->block[insertion_point], base );
+		strcpy ( leaf->keys[insertion_point], leaf->block[insertion_point]->blockptr );
+
+		return leaf;
+	}
+
 }
 
 
-/* Inserts a new key and pointer
- * to a new record into a leaf so as to exceed
- * the tree's order, causing the leaf to be split
- * in half.
- */
+node *splitting_leaf( node *root, node *leaf ) {
+	printf("SPLIT LEAF\n");
+	node *new_leaf;
+	int split, i, j;
+
+	new_leaf = make_leaf();
+
+	split = cut(order - 1);
+
+	printf("SPLIT %d, LEAF Length %d\n", split, leaf->num_keys);
+
+	for (i = split, j = 0; i < leaf->num_keys; i++, j++) {
+		new_leaf->pointers[j] = leaf->pointers[i];
+		strcpy ( new_leaf->keys[j] , leaf->keys[i] );
+		new_leaf->block[j] = leaf->block[i];
+		new_leaf->num_keys++;
+	}
+
+	leaf->num_keys = split;
+	printf("SPLIT %d, LEAF Length %d, NEW LEAF LENGTH %d\n", split, leaf->num_keys, new_leaf->num_keys );
+
+	new_leaf->pointers[order - 1] = leaf->pointers[order - 1];
+	leaf->pointers[order - 1] = new_leaf;
+
+
+	for (i = leaf->num_keys; i < order - 1; i++)
+		leaf->pointers[i] = NULL;
+	for (i = new_leaf->num_keys; i < order - 1; i++)
+		new_leaf->pointers[i] = NULL;
+
+	new_leaf->parent = leaf->parent;
+
+	printf("\n --- OLD LEAF --- \n");
+	for ( i=0; i<leaf->num_keys; i++) {
+		printf("%s ", leaf->block[i]->blockptr );
+	}
+	printf("\n --- NEW LEAF --- \n");
+	for ( i=0; i<new_leaf->num_keys; i++) {
+		printf("%s ", new_leaf->block[i]->blockptr );
+	}
+	printf("\n --- SPLIT DEBUG --- \n");
+
+
+	return insert_into_parent(root, leaf, new_leaf->keys[0], new_leaf);
+}
+
+
 node *insert_into_leaf_after_splitting(node *root, node *leaf, unsigned char *key, record *pointer) {
 
 	node *new_leaf;
 	char *temp_keys[DEFAULT_ORDER];
+	// block *temp_block[DEFAULT_ORDER];
 	void ** temp_pointers;
 	int insertion_index, split, i, j;
 
@@ -561,10 +665,6 @@ node *insert_into_leaf_after_splitting(node *root, node *leaf, unsigned char *ke
 }
 
 
-/* Inserts a new key and pointer to a node
- * into a node into which these can fit
- * without violating the B+ tree properties.
- */
 node *insert_into_node(node *root, node *n, int left_index, unsigned char *key, node *right) {
 	int i;
 	for (i = n->num_keys; i > left_index; i--) {
@@ -579,10 +679,6 @@ node *insert_into_node(node *root, node *n, int left_index, unsigned char *key, 
 }
 
 
-/* Inserts a new key and pointer to a node
- * into a node, causing the node's size to exceed
- * the order, and causing the node to split into two.
- */
 node *insert_into_node_after_splitting(node *root, node *old_node, int left_index, unsigned char *key, node *right) {
 
 	int i, j, split;
@@ -661,12 +757,9 @@ node *insert_into_node_after_splitting(node *root, node *old_node, int left_inde
 }
 
 
-
-/* Inserts a new node (leaf or internal node) into the B+ tree.
- * Returns the root of the tree after insertion.
- */
 node *insert_into_parent(node *root, node *left, unsigned char *key, node *right) {
 	// printf("[keys]%s %s\n", root->keys[0], key);
+	printf("[INFO] INSERT TO PARENT\n");
 	int left_index;
 	node *parent;
 
@@ -702,13 +795,10 @@ node *insert_into_parent(node *root, node *left, unsigned char *key, node *right
 }
 
 
-/* Creates a new root for two subtrees
- * and inserts the appropriate key into
- * the new root.
- */
 node *insert_into_new_root( node *left, unsigned char *key, node *right ) {
-
-	node *root = make_node();
+	printf("[INFO] INSERT TO NEW ROOT\n");
+	node *root = make_new_root_node();
+	printf("[INFO] INSERT TO NEW ROOT2\n");
     root->keys[0] = malloc(12);
 	strcpy( root->keys[0], key );
 	root->pointers[0] = left;
@@ -721,15 +811,19 @@ node *insert_into_new_root( node *left, unsigned char *key, node *right ) {
 }
 
 
-
-/* First insertion:
- * start a new tree.
- */
 node *start_new_tree( unsigned char *key, record *pointer ) {
 
 	node *root = make_leaf();
+
     root->keys[0] = malloc(12);
+	root->block[0]->blockptr = malloc(BLOCK_SIZE);
 	strcpy( root->keys[0], key);
+
+	// block insert
+	IntToByte( pointer->offset );
+	buildBase( key );
+	insert_into_block( root->block[0], base );
+
 	root->pointers[0] = pointer;
 	root->pointers[order - 1] = NULL;
 	root->parent = NULL;
@@ -738,13 +832,6 @@ node *start_new_tree( unsigned char *key, record *pointer ) {
 }
 
 
-
-/* Master insertion function.
- * Inserts a key and an associated value into
- * the B+ tree, causing the tree to be adjusted
- * however necessary to maintain the B+ tree
- * properties.
- */
 node *insert(node *root, unsigned char *key, unsigned int offset ) {
 
 	record *record_pointer = NULL;
@@ -788,12 +875,18 @@ node *insert(node *root, unsigned char *key, unsigned int offset ) {
 
 	if (leaf->num_keys < order - 1) {
 		leaf = insert_into_leaf(leaf, key, record_pointer );
+		if ( leaf->num_keys == order - 1 ) {
+			// Do Split Tree
+			return splitting_leaf( root, leaf );
+			return root;
+		}
 		return root;
 	}
 
 
 	/* Case:  leaf must be split.
 	 */
+	 printf("IS HERE?");
 	return insert_into_leaf_after_splitting( root, leaf, key, record_pointer );
 }
 
@@ -809,6 +902,32 @@ void destroy_tree_nodes(node *root) {
 	free(root->pointers);
 	free(root->keys);
 	free(root);
+}
+
+
+void IntToByte( unsigned int value ) {
+    baseKey[0] = (int)((value >> 24) & 0xFF);
+    baseKey[1] = (int)((value >> 16) & 0xFF);
+    baseKey[2] = (int)((value >> 8) & 0xFF);
+    baseKey[3] = (int)(value & 0xFF);
+}
+
+
+void buildBase( unsigned char *rid ) {
+    int i = 0;
+
+    //record id
+    for( i=0; i<11; i++ ) {
+        base[i] = *(rid+i);
+    }
+    base[11] = '\0';
+
+    //key value
+    base[12] = baseKey[0];
+    base[13] = baseKey[1];
+    base[14] = baseKey[2];
+    base[15] = baseKey[3];
+    base[16] = '\0';
 }
 
 

@@ -37,8 +37,6 @@ void usage_2(void) {
 	"\tf <k>  -- Find the value under key <k>.\n"
 	"\tp <k> -- Print the path from the root to key k and its associated "
            "value.\n"
-	"\tr <k1> <k2> -- Print the keys and values found in the range "
-			"[<k1>, <k2>\n"
 	"\td <k>  -- Delete key <k> and its associated value.\n"
 	"\tx -- Destroy the whole tree.  Start again with an empty tree of the "
            "same order.\n"
@@ -63,9 +61,9 @@ void usage_3(void) {
 int main (int argc, char ** argv) {
 
     	char * input_file;
-    	FILE * fp;
+    	FILE * fp, *pDataFile, *pDbFileMap, *pDbFile;
     	node *root;
-        unsigned char str[100];
+        char str[1000];
         char input_key[20];
         unsigned int input_key_2;
     	char instruction;
@@ -73,6 +71,11 @@ int main (int argc, char ** argv) {
         unsigned int offset = 0;
         bool verbose_output = false;
         int order = DEFAULT_ORDER;
+
+        //Block Use;
+        unsigned int validRecords = 1;
+        unsigned int pDbFileOffset, pDbFileMapOffset;
+        char url[200], title[500], content[500], viewCount[10], res[10], duration[10];
 
     	root = NULL;
 
@@ -92,32 +95,8 @@ int main (int argc, char ** argv) {
         }
 
     	if (argc > 2) {
-            printf("From File input b plus tree\n");
-    		input_file = argv[2];
-    		fp = fopen(input_file, "r");
-    		if (fp == NULL) {
-    			perror("Failure to open input file.");
-    			exit(EXIT_FAILURE);
-    		}
-
-
-            //get the file size & calculate the total block
-            fseek(fp, 0, SEEK_END);
-            int total_block = ftell(fp)/BLOCK_SIZE;
-            rewind(fp);
-
-            //insert the block min value
-            for ( i=1; i<=total_block; i++ ) {
-                fgets (str, 18, fp);
-                printf("Trying to insert:%s %u\n", str, offset);
-                root = insert(root, str, offset);
-                fseek(fp, 64000*i, SEEK_SET);
-                offset = ftell(fp);
-            }
-
-    		fclose(fp);
-    		print_tree(root);
-            // return EXIT_SUCCESS;
+            printf("Developing...\n");
+            return EXIT_SUCCESS;
     	}
 
     	printf("[setsal DB]> ");
@@ -128,7 +107,6 @@ int main (int argc, char ** argv) {
             line_consumed = false;
     		switch (instruction) {
     		case 'd':
-                hello();
     			// scanf("%s", input_key);
     			// root = delete(root, input_key);
     			// print_tree(root);
@@ -176,6 +154,78 @@ int main (int argc, char ** argv) {
     				root = destroy_tree(root);
     			print_tree(root);
     			break;
+            case 'j':
+                printf("From File input b plus tree\n");
+                pDataFile = fopen( "../data/youtube.rec.small","r");
+                pDbFileMap = fopen("../data/mini/dbfilemap","w");
+                pDbFile = fopen("../data/mini/dbfile","w");
+
+                while( fgets(str, sizeof(str), pDataFile) != NULL ) {
+
+                    if ( str[0] == '@' && str[1] == '\n' ) {
+
+                        pDbFileOffset = ftell(pDbFile);
+
+                        /* --- Create DB FILE --- */
+                        fwrite(url, 1, strlen(url), pDbFile);
+                        fputc('\t', pDbFile);
+                        fwrite(title, 1, strlen(title), pDbFile);
+                        fputc('\t', pDbFile);
+                        fwrite(content, 1, strlen(content), pDbFile);
+                        fputc('\t', pDbFile);
+                        fwrite(viewCount, 1, strlen(viewCount), pDbFile);
+                        fputc('\t', pDbFile);
+                        fwrite(res, 1, strlen(res), pDbFile);
+                        fputc('\t', pDbFile);
+                        fwrite(duration, 1, strlen(duration), pDbFile);
+                        fputc('\n', pDbFile);
+
+
+                        /* --- Create DB FILE MAP --- */
+                        pDbFileMapOffset = ftell(pDbFileMap);
+                        fprintf( pDbFileMap, "%u\n", pDbFileOffset);
+
+
+                        //Insert into B Plus Tree
+                        printf("[%d] ", validRecords);
+                        root = insert(root, url, pDbFileMapOffset);
+                        // printf("%d %s\n", pDbFileMapOffset, url);
+                        validRecords++;
+                    }
+                    else if( str[0] == '@' && str[1] == 'u' && str[2] == 'r' && str[3] == 'l' ){
+                        str[48] = '\0';
+                        strcpy( url, str+37 );
+
+                    }
+                    else if ( str[0] == '@' && str[1] == 't' && str[2] == 'i' && str[3] == 't' ) {
+                        strcpy( title, str+7 );
+                        title[strlen(title)-1] = '\0';
+                    }
+                    else if ( str[0] == '@' && str[1] == 'c' && str[2] == 'o' && str[3] == 'n' ) {
+                        strcpy( content, str+9 );
+                        content[strlen(content)-1] = '\0';
+                    }
+                    else if ( str[0] == '@' && str[1] == 'v' && str[2] == 'i' && str[3] == 'e' ) {
+                        strcpy( viewCount, str+11 );
+                        viewCount[strlen(viewCount)-1] = '\0';
+                    }
+                    else if ( str[0] == '@' && str[1] == 'r' && str[2] == 'e' && str[3] == 's' ) {
+                        strcpy( res, str+5 );
+                        res[strlen(res)-1] = '\0';
+                    }
+                    else if ( str[0] == '@' && str[1] == 'd' && str[2] == 'u' && str[3] == 'r' ) {
+                        strcpy( duration, str+10 );
+                        duration[strlen(duration)-1] = '\0';
+                    }
+                }
+
+                fclose(pDataFile);
+                fclose(pDbFileMap);
+                fclose(pDbFile);
+
+
+                print_tree(root);
+                break;
     		default:
     			usage_2();
     			break;
