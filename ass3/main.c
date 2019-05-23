@@ -12,9 +12,14 @@
 #define MIN_ORDER 3
 #define MAX_ORDER 20
 #define BUFFER_SIZE 256
+#define BLOCK_SIZE 64000
+#define BASE_SIZE 17
 #define bool char
 #define false 0
 #define true 1
+
+// GLOBALS
+unsigned char delete_array[100000][13];
 
 
 /* Usage
@@ -25,12 +30,26 @@ void usage(void) {
 	"  i <record>  -- Insert the record value ( like @url:..@title... ).\n"
     "  s <key> -- Search & get the record value by record key id.\n"
 	"  d <k>  -- Delete key <k> and its associated value.\n"
-    "  j -- From file insert the record value and build the data structure.\n"
+    "  j -- From data file insert the record value and build the data structure.\n"
+    "  w -- Write the block file in the disk. For fast boot and restart.\n"
+    "  r -- Read the blockfile to rebuild the block b+tree.\n"
 	"  x -- Destroy the whole tree.\n"
 	"  t -- Print the B+ tree.\n"
 	"  l -- Print the keys of the leaves (bottom row of the tree).\n"
 	"  q -- Quit. (Or use Ctl-C.)\n"
 	"  ? -- Print this help message.\n");
+}
+
+
+int check_not_in_delete( char *key, int counter ) {
+    int i;
+    for ( i=0; i<counter;i++) {
+        if ( strcmp(key, delete_array[i]) == 0 ) {
+            return false;
+            printf("[INFO] Record not found\n");
+        }
+    }
+    return true;
 }
 
 
@@ -40,6 +59,9 @@ int main (int argc, char ** argv) {
     FILE * fp, *pDataFile, *pDbFileMap, *pDbFile;
     node *root;
     char str[1000];
+
+    unsigned int offset_array[100000];
+
     char input_key[20];
     unsigned int input_key_2;
     char instruction;
@@ -48,6 +70,7 @@ int main (int argc, char ** argv) {
     bool verbose_output = false;
     int order = DEFAULT_ORDER;
     int built = false;
+    int delete_counter = 0;
 
     //Block Use;
     unsigned int validRecords = 1;
@@ -72,9 +95,11 @@ int main (int argc, char ** argv) {
         line_consumed = false;
         switch (instruction) {
         case 'd':
-            // scanf("%s", input_key);
-            // root = delete(root, input_key);
-            // print_tree(root);
+            scanf("\n%s", input_key);
+            strcpy( delete_array[delete_counter], input_key );
+            delete_counter++;
+            printf("[Success] Delete record %s\n", input_key );
+            print_tree(root);
             break;
         case 'i':
             fgets(buffer, BUFFER_SIZE, stdin);
@@ -91,8 +116,14 @@ int main (int argc, char ** argv) {
             return EXIT_SUCCESS;
             break;
         case 's':
+            if (built == false) {
+                printf("You have not built the block b+tree\n");
+                break;
+            }
             scanf("\n%s", input_key);
-            find_and_print( root, input_key, 0 );
+            if ( check_not_in_delete(input_key, delete_counter) ) {
+                find_and_print( root, input_key, 0 );
+            }
             break;
         case 't':
             print_tree(root);
@@ -104,9 +135,28 @@ int main (int argc, char ** argv) {
             print_tree(root);
             built = false;
             break;
+        case 'r':
+            if (built == true) {
+                printf("You have built the block b+tree\n");
+                break;
+            }
+            fp = fopen("../data/mid/blockfileinfo", "r");
+            unsigned int nblock = 0;
+
+            while( fscanf(fp, "%s %u %u\n", input_key, &input_key_2, &offset) != EOF ){
+                printf("[INFO] Read block info: %s %u %u\n", input_key, input_key_2, offset );
+                root = insert_from_blockfile( root, input_key, input_key_2 );
+                offset_array[nblock] = offset;
+                nblock++;
+            }
+            fclose(fp);
+            printf("[INFO] Have %u blocks.\n", nblock);
+            traversal_leaf_and_append_block(root, offset_array);
+            built = true;
+            break;
         case 'j':
             if (built == true) {
-                printf("You have built the B+tree\n");
+                printf("You have built the block b+tree\n");
                 break;
             }
             built = true;
@@ -180,6 +230,9 @@ int main (int argc, char ** argv) {
 
 
             print_tree(root);
+            break;
+        case 'w':
+            traversal_leaf_and_write_blockfile(root);
             break;
         default:
             usage();

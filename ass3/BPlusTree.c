@@ -1,11 +1,8 @@
 #include "BPlusTree.h"
 #include "Block.h"
-#include <stdbool.h>
-#ifdef _WIN32
 #define bool char
 #define false 0
 #define true 1
-#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -79,6 +76,8 @@ node *start_new_tree( unsigned char *key, record *pointer );
 node *insert( node *root, unsigned char *key, unsigned int offset );
 
 
+//print
+void traversal_leaf_and_write_blockfile(node *const root);
 
 void enqueue(node *new_node) {
 	node *c;
@@ -116,12 +115,8 @@ void print_leaves(node *const root) {
 		c = c->pointers[0];
 	while (true) {
 		for (i = 0; i < c->num_keys; i++) {
-			if (verbose_output)
-				printf("%p ", c->pointers[i]);
 			printf("%s ", c->keys[i]);
 		}
-		if (verbose_output)
-			printf("%p ", c->pointers[order - 1]);
 		if (c->pointers[order - 1] != NULL) {
 			printf(" | ");
 			c = c->pointers[order - 1];
@@ -129,6 +124,80 @@ void print_leaves(node *const root) {
 		else
 			break;
 	}
+	printf("\n");
+}
+
+
+
+void traversal_leaf_and_write_blockfile(node *const root) {
+	if (root == NULL) {
+		printf("Empty tree.\n");
+		return;
+	}
+	int i, j;
+	node *c = root;
+
+	FILE *pblockfile, *pblockfileInfo;
+	pblockfile = fopen("../data/mid/blockfile", "wb+");
+	pblockfileInfo = fopen("../data/mid/blockfileinfo", "w+");
+
+	while (!c->is_leaf)
+		c = c->pointers[0];
+	while (true) {
+		for (i = 0; i < c->num_keys; i++) {
+			printf("[INFO] Write block in key %s %d %u\n", c->keys[i], ((record *)c->pointers[i])->offset, c->block[i]->blockSize );
+			// printf("num key:%d\n", c->num_keys);
+			// Write the block information
+			fprintf( pblockfileInfo, "%s %d %u\n", c->block[i]->blockptr, ((record *)c->pointers[i])->offset, c->block[i]->blockSize );
+
+			// // Write the block into blockfile
+			fwrite(c->block[i]->blockptr, c->block[i]->blockSize, 1, pblockfile);
+			for ( j=c->block[i]->blockSize; j<BLOCK_SIZE; j++) {
+				fputc(0, pblockfile);
+			}
+
+		}
+		if (c->pointers[order - 1] != NULL) {
+			c = c->pointers[order - 1];
+		}
+		else
+			break;
+	}
+	fclose(pblockfile);
+	fclose(pblockfileInfo);
+	printf("\n");
+}
+
+
+void traversal_leaf_and_append_block(node *const root, unsigned int offset_array[] ) {
+	if (root == NULL) {
+		printf("Empty tree.\n");
+		return;
+	}
+	int i, j, nblock = 0;
+	node *c = root;
+
+	FILE *fp;
+	fp = fopen("../data/mid/blockfile", "rb+");
+
+	while (!c->is_leaf)
+		c = c->pointers[0];
+	while (true) {
+		for (i = 0; i < c->num_keys; i++) {
+			c->block[i] = start_new_block();
+			c->block[i]->blockSize = offset_array[nblock];
+			fread( c->block[i]->blockptr, BLOCK_SIZE, 1, fp );
+			// printf("1:%s \n", c->keys[i]);
+			// printf("2:%s \n", c->block[i]->blockptr);
+			nblock++;
+		}
+		if (c->pointers[order - 1] != NULL) {
+			c = c->pointers[order - 1];
+		}
+		else
+			break;
+	}
+	fclose(fp);
 	printf("\n");
 }
 
@@ -213,9 +282,11 @@ void find_and_print(node *const root, unsigned char *key, int verbose) {
 		// record * r = find_close(root, key, verbose, NULL);
 
 		leaf = find_leaf(root, key, verbose);
+		printf("%d\n", leaf->num_keys);
 		for (i = 0; i < leaf->num_keys; i++)
-		   if ( strcmp( leaf->keys[i], key ) <= 0 ) break;
+		   if ( strcmp( leaf->keys[i], key ) >= 0 ) break;
 
+		i = i -1;
 		printf("[INFO] In the closet block: %s\n", leaf->keys[i]);
 
 		// Do sequence search in the block
@@ -403,9 +474,7 @@ record * make_record(unsigned int value) {
 node *make_node(void) {
 
 	node *new_node;
-	printf("MAKE NODE123\n");
 	new_node = malloc(sizeof(node));
-	printf("MAKE NODE2\n");
 	if (new_node == NULL) {
 		perror("Node creation.");
 		exit(EXIT_FAILURE);
@@ -429,9 +498,7 @@ node *make_node(void) {
 node *make_new_root_node(void) {
 
 	node *new_node;
-	printf("456");
 	new_node = malloc(sizeof(node));
-	printf("123");
 	if (new_node == NULL) {
 		perror("Node creation.");
 		exit(EXIT_FAILURE);
@@ -552,8 +619,32 @@ node *insert_into_leaf(node *leaf, unsigned char *key, record *pointer ) {
 }
 
 
+node *insert_into_leaf_blockfile(node *leaf, unsigned char *key, unsigned int offset ) {
+
+	int i, insertion_point = 0;
+
+	record *new_pointer = make_record(offset);
+
+
+	insertion_point = 0;
+	while (insertion_point < leaf->num_keys && strcmp( leaf->keys[insertion_point], key ) < 0 )
+		insertion_point++;
+
+	for (i = leaf->num_keys; i > insertion_point; i--) {
+		leaf->keys[i] = leaf->keys[i - 1];
+		leaf->pointers[i] = leaf->pointers[i - 1];
+	}
+
+	leaf->keys[insertion_point] = malloc(12);
+	strcpy( leaf->keys[insertion_point], key );
+	leaf->pointers[insertion_point] = new_pointer;
+	leaf->num_keys++;
+
+	return leaf;
+}
+
+
 node *splitting_leaf( node *root, node *leaf ) {
-	printf("SPLIT LEAF\n");
 	node *new_leaf;
 	int split, i, j;
 
@@ -561,7 +652,6 @@ node *splitting_leaf( node *root, node *leaf ) {
 
 	split = cut(order - 1);
 
-	printf("SPLIT %d, LEAF Length %d\n", split, leaf->num_keys);
 
 	for (i = split, j = 0; i < leaf->num_keys; i++, j++) {
 		new_leaf->pointers[j] = leaf->pointers[i];
@@ -572,7 +662,6 @@ node *splitting_leaf( node *root, node *leaf ) {
 	}
 
 	leaf->num_keys = split;
-	printf("SPLIT %d, LEAF Length %d, NEW LEAF LENGTH %d\n", split, leaf->num_keys, new_leaf->num_keys );
 
 	new_leaf->pointers[order - 1] = leaf->pointers[order - 1];
 	leaf->pointers[order - 1] = new_leaf;
@@ -585,6 +674,40 @@ node *splitting_leaf( node *root, node *leaf ) {
 
 	new_leaf->parent = leaf->parent;
 
+
+
+	return insert_into_parent(root, leaf, new_leaf->keys[0], new_leaf);
+}
+
+
+node *splitting_leaf_blockfile( node *root, node *leaf ) {
+	node *new_leaf;
+	int split, i, j;
+
+	new_leaf = make_leaf();
+
+	split = cut(order - 1);
+
+
+	for (i = split, j = 0; i < leaf->num_keys; i++, j++) {
+		new_leaf->pointers[j] = leaf->pointers[i];
+		new_leaf->keys[j]= malloc(12);
+		strcpy ( new_leaf->keys[j] , leaf->keys[i] );
+		new_leaf->num_keys++;
+	}
+
+	leaf->num_keys = split;
+
+	new_leaf->pointers[order - 1] = leaf->pointers[order - 1];
+	leaf->pointers[order - 1] = new_leaf;
+
+
+	for (i = leaf->num_keys; i < order - 1; i++)
+		leaf->pointers[i] = NULL;
+	for (i = new_leaf->num_keys; i < order - 1; i++)
+		new_leaf->pointers[i] = NULL;
+
+	new_leaf->parent = leaf->parent;
 
 
 	return insert_into_parent(root, leaf, new_leaf->keys[0], new_leaf);
@@ -748,7 +871,6 @@ node *insert_into_node_after_splitting(node *root, node *old_node, int left_inde
 
 node *insert_into_parent(node *root, node *left, unsigned char *key, node *right) {
 	// printf("[keys]%s %s\n", root->keys[0], key);
-	printf("[INFO] INSERT TO PARENT\n");
 	int left_index;
 	node *parent;
 
@@ -785,9 +907,8 @@ node *insert_into_parent(node *root, node *left, unsigned char *key, node *right
 
 
 node *insert_into_new_root( node *left, unsigned char *key, node *right ) {
-	printf("[INFO] INSERT TO NEW ROOT\n");
+
 	node *root = make_new_root_node();
-	printf("[INFO] INSERT TO NEW ROOT2\n");
     root->keys[0] = malloc(12);
 	strcpy( root->keys[0], key );
 	root->pointers[0] = left;
@@ -813,6 +934,18 @@ node *start_new_tree( unsigned char *key, record *pointer ) {
 	buildBase( key );
 	insert_into_block( root->block[0], base );
 
+	root->pointers[0] = pointer;
+	root->pointers[order - 1] = NULL;
+	root->parent = NULL;
+	root->num_keys++;
+	return root;
+}
+
+
+node *start_new_tree_blockfile( unsigned char *key, record *pointer ) {
+	node *root = make_leaf();
+    root->keys[0] = malloc(12);
+	strcpy( root->keys[0], key);
 	root->pointers[0] = pointer;
 	root->pointers[order - 1] = NULL;
 	root->parent = NULL;
@@ -867,7 +1000,6 @@ node *insert(node *root, unsigned char *key, unsigned int offset ) {
 		if ( leaf->num_keys == order - 1 ) {
 			// Do Split Tree
 			return splitting_leaf( root, leaf );
-			return root;
 		}
 		return root;
 	}
@@ -877,6 +1009,38 @@ node *insert(node *root, unsigned char *key, unsigned int offset ) {
 	 */
 	 printf("IS HERE?");
 	return insert_into_leaf_after_splitting( root, leaf, key, record_pointer );
+}
+
+
+node *insert_from_blockfile(node *root, unsigned char *key, unsigned int offset ) {
+
+
+	record *record_pointer = NULL;
+	node *leaf = NULL;
+
+	record_pointer = find(root, key, false, NULL);
+    if (record_pointer != NULL) {
+         printf("key exists");
+         return root;
+    }
+
+	record_pointer = make_record( offset );
+
+	if (root == NULL)
+		return start_new_tree_blockfile( key, record_pointer );
+
+	 leaf = find_leaf(root, key, false);
+
+	if (leaf->num_keys < order - 1) {
+		leaf = insert_into_leaf_blockfile(leaf, key, offset );
+		if ( leaf->num_keys == order - 1 ) {
+			return splitting_leaf_blockfile( root, leaf );
+		}
+		return root;
+	}
+
+	 printf("IS HERE?");
+	 return insert_into_leaf_after_splitting( root, leaf, key, record_pointer );
 }
 
 
