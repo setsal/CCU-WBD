@@ -20,6 +20,9 @@
 
 // GLOBALS
 unsigned char delete_array[100000][13];
+char str[1000];
+char ENV[6][50];
+
 
 
 /* Usage
@@ -40,13 +43,30 @@ void usage(void) {
 	"  ? -- Print this help message.\n");
 }
 
+void init_global() {
+    printf("[INFO] Reading file location in .env file.\n");
+    FILE *fp = fopen(".env", "r");
+    char *loc;
+    int i = 0;
+    while( fscanf(fp, "%s\n", str) != EOF ) {
+        loc = strchr(str, '=');
+        loc++;
+        strcpy(ENV[i], loc);
+        i++;
+        if ( i == 5 ) {
+            break;
+        }
+    }
+}
+
+
 
 int check_not_in_delete( char *key, int counter ) {
     int i;
     for ( i=0; i<counter;i++) {
         if ( strcmp(key, delete_array[i]) == 0 ) {
             return false;
-            printf("[INFO] Record not found\n");
+            printf("[INFO] Record not found.\n");
         }
     }
     return true;
@@ -58,7 +78,6 @@ int main (int argc, char ** argv) {
     char * input_file;
     FILE * fp, *pDataFile, *pDbFileMap, *pDbFile;
     node *root;
-    char str[1000];
 
     unsigned int offset_array[100000];
 
@@ -86,6 +105,7 @@ int main (int argc, char ** argv) {
     }
     if (argc < 3) {
         usage();
+        init_global();
     }
     printf("\n[setsal DB]> ");
     char buffer[BUFFER_SIZE];
@@ -122,7 +142,7 @@ int main (int argc, char ** argv) {
             }
             scanf("\n%s", input_key);
             if ( check_not_in_delete(input_key, delete_counter) ) {
-                find_and_print( root, input_key, 0 );
+                find_and_print( root, input_key, 0, ENV[2], ENV[3] );
             }
             break;
         case 't':
@@ -140,7 +160,7 @@ int main (int argc, char ** argv) {
                 printf("You have built the block b+tree\n");
                 break;
             }
-            fp = fopen("../data/mid/blockfileinfo", "r");
+            fp = fopen( ENV[1], "r");
             unsigned int nblock = 0;
 
             while( fscanf(fp, "%s %u %u\n", input_key, &input_key_2, &offset) != EOF ){
@@ -161,9 +181,9 @@ int main (int argc, char ** argv) {
             }
             built = true;
             printf("From File input b plus tree\n");
-            pDataFile = fopen( "../data/youtube.rec.small","r");
-            pDbFileMap = fopen("../data/mini/dbfilemap","w");
-            pDbFile = fopen("../data/mini/dbfile","w");
+            pDataFile = fopen( ENV[4], "r");
+            pDbFileMap = fopen( ENV[3], "w");
+            pDbFile = fopen( ENV[2], "w");
 
             while( fgets(str, sizeof(str), pDataFile) != NULL ) {
 
@@ -232,7 +252,7 @@ int main (int argc, char ** argv) {
             print_tree(root);
             break;
         case 'w':
-            traversal_leaf_and_write_blockfile(root);
+            traversal_leaf_and_write_blockfile(root, ENV[0], ENV[1]);
             break;
         default:
             usage();

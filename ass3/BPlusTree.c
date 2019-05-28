@@ -53,7 +53,7 @@ int height(node *const root);
 int path_to_root(node *const root, node *child);
 void print_leaves(node *const root);
 void print_tree(node *const root);
-void find_and_print(node *const root, unsigned char *key, int verbose);
+void find_and_print(node *const root, unsigned char *key, int verbose, char *l_dbfile, char *l_dbfilemap);
 node *find_leaf(node *const root, unsigned char *key, bool verbose);
 record *find(node *root, unsigned char *key, bool verbose, node ** leaf_out);
 record *find_close(node *root, unsigned char *key, bool verbose, node ** leaf_out);
@@ -77,7 +77,7 @@ node *insert( node *root, unsigned char *key, unsigned int offset );
 
 
 //print
-void traversal_leaf_and_write_blockfile(node *const root);
+void traversal_leaf_and_write_blockfile(node *const root, char *l_blockfile, char *l_blockfile_info);
 
 void enqueue(node *new_node) {
 	node *c;
@@ -129,7 +129,7 @@ void print_leaves(node *const root) {
 
 
 
-void traversal_leaf_and_write_blockfile(node *const root) {
+void traversal_leaf_and_write_blockfile(node *const root, char *l_blockfile, char *l_blockfile_info ) {
 	if (root == NULL) {
 		printf("Empty tree.\n");
 		return;
@@ -138,8 +138,8 @@ void traversal_leaf_and_write_blockfile(node *const root) {
 	node *c = root;
 
 	FILE *pblockfile, *pblockfileInfo;
-	pblockfile = fopen("../data/mid/blockfile", "wb+");
-	pblockfileInfo = fopen("../data/mid/blockfileinfo", "w+");
+	pblockfile = fopen( l_blockfile, "wb+");
+	pblockfileInfo = fopen( l_blockfile_info, "w+");
 
 	while (!c->is_leaf)
 		c = c->pointers[0];
@@ -269,7 +269,7 @@ void print_tree(node *const root) {
 }
 
 
-void find_and_print(node *const root, unsigned char *key, int verbose) {
+void find_and_print(node *const root, unsigned char *key, int verbose, char *l_dbfile, char *l_dbfilemap ) {
     node *leaf = NULL;
 	FILE *fp;
 	record * r = find(root, key, verbose, NULL);
@@ -316,14 +316,14 @@ void find_and_print(node *const root, unsigned char *key, int verbose) {
 		printf("[SUCCESS] Record find -- key %s, pDbFileMapOffset %u, ",  key, pDbFileMapOffset);
 
 		// Get db file Map Value
-		fp = fopen("../data/mid/dbfilemap","r");
+		fp = fopen( l_dbfilemap,"r");
 		fseek(fp, pDbFileMapOffset, SEEK_SET);
 		fscanf(fp, "%u", &pDbFileOffset);
 		printf("pDbFileOffset %u.\n", pDbFileOffset);
 		fclose(fp);
 
 		// Get db file Value
-		fp = fopen("../data/mid/dbfile","r");
+		fp = fopen( l_dbfile,"r");
 		fseek(fp, pDbFileOffset, SEEK_SET);
 		fgets( str, 500, fp );
 		fclose(fp);
@@ -348,14 +348,14 @@ void find_and_print(node *const root, unsigned char *key, int verbose) {
 		printf("Record at %p -- key %s, value %d\n", r, key, r->offset);
 
 		// Get db file Map Value
-		fp = fopen("../data/mid/dbfilemap","r");
+		fp = fopen( l_dbfilemap,"r");
 		fseek(fp, r->offset, SEEK_SET);
 		fscanf(fp, "%u", &pDbFileOffset);
 		printf("pDbFileOffset %u.\n", pDbFileOffset);
 		fclose(fp);
 		//
 		// // Get db file Value
-		fp = fopen("../data/mid/dbfile","r");
+		fp = fopen( l_dbfile,"r");
 		fseek(fp, pDbFileOffset, SEEK_SET);
 		fgets( str, 500, fp );
 		fclose(fp);
