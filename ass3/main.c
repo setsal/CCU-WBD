@@ -22,6 +22,7 @@
 unsigned char delete_array[100000][13];
 char str[1000];
 char ENV[6][50];
+double start_time, end_time;
 
 
 
@@ -104,8 +105,8 @@ int main (int argc, char ** argv) {
         exit(EXIT_FAILURE);
     }
     if (argc < 3) {
-        usage();
         init_global();
+        usage();
     }
     printf("\n[setsal DB]> ");
     char buffer[BUFFER_SIZE];
@@ -125,7 +126,10 @@ int main (int argc, char ** argv) {
             fgets(buffer, BUFFER_SIZE, stdin);
             line_consumed = true;
             count = sscanf(buffer, "%s %u", input_key, &input_key_2);
+            start_time = clock();
             root = insert(root, input_key, input_key_2);
+            end_time = clock();
+            printf("[INFO] Insert on a key, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
             print_tree(root);
             break;
         case 'l':
@@ -141,9 +145,12 @@ int main (int argc, char ** argv) {
                 break;
             }
             scanf("\n%s", input_key);
+            start_time = clock();
             if ( check_not_in_delete(input_key, delete_counter) ) {
                 find_and_print( root, input_key, 0, ENV[2], ENV[3] );
             }
+            end_time = clock();
+            printf("[INFO] Search on a key, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
             break;
         case 't':
             print_tree(root);
@@ -162,7 +169,7 @@ int main (int argc, char ** argv) {
             }
             fp = fopen( ENV[1], "r");
             unsigned int nblock = 0;
-
+            start_time = clock();
             while( fscanf(fp, "%s %u %u\n", input_key, &input_key_2, &offset) != EOF ){
                 printf("[INFO] Read block info: %s %u %u\n", input_key, input_key_2, offset );
                 root = insert_from_blockfile( root, input_key, input_key_2 );
@@ -171,7 +178,9 @@ int main (int argc, char ** argv) {
             }
             fclose(fp);
             printf("[INFO] Have %u blocks.\n", nblock);
-            traversal_leaf_and_append_block(root, offset_array);
+            traversal_leaf_and_append_block(root, offset_array, ENV[0] );
+            end_time = clock();
+            printf("[INFO] Rebuild the block b plus tree, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
             built = true;
             break;
         case 'j':
@@ -184,7 +193,7 @@ int main (int argc, char ** argv) {
             pDataFile = fopen( ENV[4], "r");
             pDbFileMap = fopen( ENV[3], "w");
             pDbFile = fopen( ENV[2], "w");
-
+            start_time = clock();
             while( fgets(str, sizeof(str), pDataFile) != NULL ) {
 
                 if ( str[0] == '@' && str[1] == '\n' ) {
@@ -243,7 +252,8 @@ int main (int argc, char ** argv) {
                     duration[strlen(duration)-1] = '\0';
                 }
             }
-
+            end_time = clock();
+            printf("[INFO] Insert from file to build the block b plus tree, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
             fclose(pDataFile);
             fclose(pDbFileMap);
             fclose(pDbFile);

@@ -169,7 +169,7 @@ void traversal_leaf_and_write_blockfile(node *const root, char *l_blockfile, cha
 }
 
 
-void traversal_leaf_and_append_block(node *const root, unsigned int offset_array[] ) {
+void traversal_leaf_and_append_block(node *const root, unsigned int offset_array[], char *l_blockfile ) {
 	if (root == NULL) {
 		printf("Empty tree.\n");
 		return;
@@ -178,7 +178,7 @@ void traversal_leaf_and_append_block(node *const root, unsigned int offset_array
 	node *c = root;
 
 	FILE *fp;
-	fp = fopen("../data/mid/blockfile", "rb+");
+	fp = fopen( l_blockfile, "rb+");
 
 	while (!c->is_leaf)
 		c = c->pointers[0];
@@ -282,7 +282,6 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 		// record * r = find_close(root, key, verbose, NULL);
 
 		leaf = find_leaf(root, key, verbose);
-		printf("%d\n", leaf->num_keys);
 		for (i = 0; i < leaf->num_keys; i++)
 		   if ( strcmp( leaf->keys[i], key ) >= 0 ) break;
 

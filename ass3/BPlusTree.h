@@ -22,7 +22,7 @@ typedef struct node {
 
 extern void print_leaves(node *const);
 extern void traversal_leaf_and_write_blockfile(node *const, char *, char *);
-extern void traversal_leaf_and_append_block(node *const, unsigned int * );
+extern void traversal_leaf_and_append_block(node *const, unsigned int *, char *);
 extern void print_tree(node *const);
 extern void find_and_print(node *const, unsigned char *, int, char *, char *);
 extern node *insert( node *, unsigned char *, unsigned int );
