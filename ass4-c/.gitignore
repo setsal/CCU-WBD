@@ -1,0 +1,7 @@
+a.out
+main
+test
+*.o
+*.gch
+*.exe
+.env
