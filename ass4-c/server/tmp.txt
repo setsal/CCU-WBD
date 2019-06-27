@@ -1,0 +1,11 @@
+[INFO] Record not found under key d4VQ-S0FfjI. Trying search in the closet block.
+[INFO] In the closet block: d4SZzFuZQjs
+[SUCCESS] Record find -- key d4VQ-S0FfjI, pDbFileMapOffset 17, pDbFileOffset 373.
+[
+	url:https://www.youtube.com/watch?v=d4VQ-S0FfjI
+	title:Portfolio Development Presentation - YouTube
+	content:I&#39;m sorry that the video has some choppy quality to it. This is the link to the website where you can view all of the images and the ppt presentation in full...
+	viewCount:10
+	res:144
+	duration:391
+]

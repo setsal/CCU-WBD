@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.css" integrity="sha256-9mbkOfVho3ZPXfM7W8sV2SndrGDuh7wuyLjtsWeTI1Q=" crossorigin="anonymous" />
+    <script
+      src="https://code.jquery.com/jquery-3.1.1.min.js"
+      integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+      crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/2.4.1/semantic.min.js" integrity="sha256-t8GepnyPmw9t+foMh3mKNvcorqNHamSKtKRxxpUEgFI=" crossorigin="anonymous"></script>
+    <title>DB 作業</title>
+  </head>
+  <style>
+  .container {
+      padding: 5em 0em;
+    }
+  </style>
+  <body>
+      <div class="ui text container">
+          <h1 class="ui dividing header">Search</h1>
+
+          <h3 class="first">Input a record_id</h3>
+          <p>
+              <form class="ui form" action="/rsearch" method="post">
+                <div class="field">
+                  <input type="text" name="record" placeholder="Record_id">
+                </div>
+                <button class="ui button" type="submit">Submit</button>
+              </form>
+          </p>
+
+          <h3>Result</h3>
+          <p>your search result.</p>
+          {% block content %} {% endblock content %}
+      </div>
+  </body>
+</html>

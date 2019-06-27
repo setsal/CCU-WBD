@@ -91,7 +91,6 @@ trie init_tables()
 	int i, j;
 	trie root = trie_new();
 	for (i = 0; i < sizeof(chr_legal); i++) {
-        printf("%d %c", (int)chr_legal[i], chr_legal[i]);
 		chr_idx[(int)chr_legal[i]] = i + 1;
 		idx_chr[i + 1] = chr_legal[i];
 	}
@@ -165,6 +164,7 @@ int check_not_in_delete( char *key, int counter ) {
 }
 
 
+
 int main (int argc, char ** argv) {
 
     char * input_file;
@@ -232,7 +232,7 @@ int main (int argc, char ** argv) {
         recvfrom( sock_fd, buff, sizeof(buff), 0, (struct sockaddr *)&cliaddr, &len);
 
 		sscanf(buff, "%c %s", &instruction, input_key );
-		printf("[INFO] Receive command %c\n", buff);
+		printf("[INFO] Receive command %s\n", buff);
 
         switch (instruction) {
         case 'd':

@@ -4,7 +4,9 @@
 {% block content %}
 <div class="ui raised segment">
   <p>
-      {{ result }}
+      {% for item in result %}
+        {{item}}<br />
+      {% endfor %}
   </p>
 </div>
 {% endblock content %}

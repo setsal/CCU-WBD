@@ -2,6 +2,7 @@ from flask import Flask,jsonify,request,render_template
 import sys
 import ctypes
 import subprocess
+import os
 
 
 app = Flask(__name__)
@@ -11,6 +12,25 @@ app = Flask(__name__)
 def index():
     return render_template('index.html')
 
+@app.route('/build')
+def build():
+    return render_template('build.html')
+
+
+@app.route('/rbuild', methods=['POST'])
+def rbuild():
+    rid = request.form.get('build_method')
+    if rid == "build":
+        command = "controller.exe j null"
+    else:
+        command = "controller.exe r null"
+
+    myCmd = os.popen(command).read()
+    # Further file processing goes here
+    return render_template(
+        'build_result.html',
+        result = myCmd
+    )
 
 
 @app.route('/search')
@@ -20,12 +40,15 @@ def search():
 @app.route('/rsearch', methods=['POST'])
 def rsearch():
     rid = request.form.get('record')
-    with open('./frontend/test.txt') as fp:
-         result = fp.readlines()
+    command = "controller.exe s " + rid
+
+    # myCmd = os.popen(command).read()
+    with open('./server/tmp.txt') as fp:
+        result = fp.readlines()
     # Further file processing goes here
     return render_template(
         'search_result.html',
-        result = rid
+        result = result
     )
 # #post /store data: {name :}
 # @app.route('/store' , methods=['POST'])
