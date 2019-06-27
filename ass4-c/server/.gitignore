@@ -5,3 +5,5 @@ test
 *.gch
 *.exe
 .env
+info.txt
+tmp.txt

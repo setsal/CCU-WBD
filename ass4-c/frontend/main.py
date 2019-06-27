@@ -42,13 +42,28 @@ def rsearch():
     rid = request.form.get('record')
     command = "controller.exe s " + rid
 
-    # myCmd = os.popen(command).read()
-    with open('./server/tmp.txt') as fp:
-        result = fp.readlines()
+    myCmd = os.popen(command).read()
+    fp = open('./server/tmp.txt', 'r')
+    result = fp.readlines()
+    fp.close()
+
+    fp = open('./server/info.txt', 'r')
+    runtime = fp.readlines()
+    fp.close()
+    # with open('./server/info.txt', "r") as fp2:
+    #     runtime = fp.readlines()
+
     # Further file processing goes here
     return render_template(
         'search_result.html',
-        result = result
+        rid = rid,
+        runtime = runtime,
+        result = result,
+        title = result[1][5:],
+        content = result[2][9:],
+        viewCount = result[3],
+        res = result[4],
+        duration = result[5]
     )
 # #post /store data: {name :}
 # @app.route('/store' , methods=['POST'])

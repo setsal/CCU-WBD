@@ -2,11 +2,31 @@
 {% extends "search.html" %}
 
 {% block content %}
-<div class="ui raised segment">
-  <p>
-      {% for item in result %}
-        {{item}}<br />
-      {% endfor %}
-  </p>
+<div class="ui segments">
+  <div class="ui segment">
+    <p>Runtime information</p>
+  </div>
+  <div class="ui segments">
+    <div class="ui blue segment">
+        {% for item in runtime %}
+            {{item}}<br >
+        {% endfor %}
+      <p></p>
+    </div>
+  </div>
+  <div class="ui segment">
+
+        <div class="video-container">
+            <iframe src="https://www.youtube.com/embed/{{rid}}" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+         <h3 class="ui dividing header">{{title}}</h3>
+      <div class="ui grid" style="margin-bottom: 10px;">
+          <div class="four column row">
+            <div class="left floated column"><i class="clock outline icon"></i>長度: {{duration[10:]}} 秒</div>
+            <div class="right floated column" style="text-align: right;"><i class="eye icon"></i>觀看次數: {{viewCount[11:]}}</div>
+          </div>
+          <p>{{content}}</p>
+    </div>
+  </div>
 </div>
 {% endblock content %}

@@ -278,8 +278,10 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 	int i, offset = 0, isFind = 1;
 
 	FILE *writefp = fopen("tmp.txt", "w");
+	FILE *infofp = fopen("info.txt", "w");
+
 	if (r == NULL) {
-		fprintf( writefp, "[INFO] Record not found under key %s. Trying search in the closet block.\n", key);
+		fprintf( infofp, "[INFO] Record not found under key %s. Trying search in the closet block.\n", key);
 		// record * r = find_close(root, key, verbose, NULL);
 
 		leaf = find_leaf(root, key, verbose);
@@ -287,7 +289,7 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 		   if ( strcmp( leaf->keys[i], key ) >= 0 ) break;
 
 		i = i -1;
-		fprintf( writefp, "[INFO] In the closet block: %s\n", leaf->keys[i]);
+		fprintf( infofp, "[INFO] In the closet block: %s\n", leaf->keys[i]);
 
 		// Do sequence search in the block
 		unsigned char *blockptr = leaf->block[i]->blockptr;
@@ -302,7 +304,7 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 
 
 		if ( isFind == 0 ) {
-			fprintf( writefp, "[Exception] Still not found. Check your key value is exist in origin data or not?\n");
+			fprintf( infofp, "[Exception] Still not found. Check your key value is exist in origin data or not?\n");
 			return;
 		}
 
@@ -313,13 +315,13 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 
 		// Get db file Map offset
 		pDbFileMapOffset = s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3];
-		fprintf( writefp, "[SUCCESS] Record find -- key %s, pDbFileMapOffset %u, ",  key, pDbFileMapOffset);
+		fprintf( infofp, "[SUCCESS] Record find -- key %s, pDbFileMapOffset %u, ",  key, pDbFileMapOffset);
 
 		// Get db file Map Value
 		fp = fopen( l_dbfilemap,"r");
 		fseek(fp, pDbFileMapOffset, SEEK_SET);
 		fscanf(fp, "%u", &pDbFileOffset);
-		fprintf( writefp, "pDbFileOffset %u.\n", pDbFileOffset);
+		fprintf( infofp, "pDbFileOffset %u.\n", pDbFileOffset);
 		fclose(fp);
 
 		// Get db file Value
@@ -331,7 +333,7 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 		// Print the youtube data detail
 		char *tmp = str;
 		int counter = 0;
-		fprintf( writefp, "[\n%s", field[0]);
+		fprintf( writefp, "%s", field[0]);
 		for ( i=0; i<strlen(str); i++ ) {
 			if ( str[i] == '\t' ) {
 				counter++;
@@ -341,17 +343,16 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 				fprintf( writefp, "%c", str[i]);
 			}
 		}
-		fprintf( writefp, "]\n");
 
 	}
 	else {
-		fprintf( writefp, "Record at %p -- key %s, value %d\n", r, key, r->offset);
+		fprintf( infofp, "Record at %p -- key %s, value %d\n", r, key, r->offset);
 
 		// Get db file Map Value
 		fp = fopen( l_dbfilemap,"r");
 		fseek(fp, r->offset, SEEK_SET);
 		fscanf(fp, "%u", &pDbFileOffset);
-		fprintf( writefp, "pDbFileOffset %u.\n", pDbFileOffset);
+		fprintf( infofp, "pDbFileOffset %u.\n", pDbFileOffset);
 		fclose(fp);
 		//
 		// // Get db file Value
@@ -363,7 +364,7 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 		// // Print the youtube data detail
 		char *tmp = str;
 		int counter = 0;
-		fprintf( writefp, "[\n%s", field[0]);
+		fprintf( writefp, "%s", field[0]);
 		for ( i=0; i<strlen(str); i++ ) {
 			if ( str[i] == '\t' ) {
 				counter++;
@@ -373,9 +374,9 @@ void find_and_print(node *const root, unsigned char *key, int verbose, char *l_d
 				fprintf( writefp, "%c", str[i]);
 			}
 		}
-		fprintf( writefp, "]\n");
 
 	}
+	fclose(infofp);
 	fclose(writefp);
 	printf("[INFO] Success find and write\n");
 
