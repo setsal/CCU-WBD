@@ -64,7 +64,7 @@ def rsearch():
         return render_template(
             'search_result.html',
             rid = rid,
-            runtime = myCmd[-6:-1],
+            runtime = runtime,
             result = result,
             title = result[1][5:],
             content = result[2][9:],

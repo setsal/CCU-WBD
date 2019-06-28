@@ -146,7 +146,7 @@ void traversal_leaf_and_write_blockfile(node *const root, char *l_blockfile, cha
 		c = c->pointers[0];
 	while (true) {
 		for (i = 0; i < c->num_keys; i++) {
-			printf("[INFO] Write block in key %s %d %u\n", c->keys[i], ((record *)c->pointers[i])->offset, c->block[i]->blockSize );
+			// printf("[INFO] Write block in key %s %d %u\n", c->keys[i], ((record *)c->pointers[i])->offset, c->block[i]->blockSize );
 			// printf("num key:%d\n", c->num_keys);
 			// Write the block information
 			fprintf( pblockfileInfo, "%s %d %u\n", c->block[i]->blockptr, ((record *)c->pointers[i])->offset, c->block[i]->blockSize );
@@ -554,7 +554,7 @@ node *insert_into_leaf(node *leaf, unsigned char *key, record *pointer ) {
 	}
 
 	if ( leaf->block[insertion_point]->blockSize + 17 < BLOCK_SIZE ) {
-		printf("Insert into block %d - %s, %u\n", insertion_point, key, pointer->offset );
+		// printf("Insert into block %d - %s, %u\n", insertion_point, key, pointer->offset );
 		IntToByte( pointer->offset );
 		buildBase( key );
 		insert_into_block( leaf->block[insertion_point], base );
@@ -586,7 +586,7 @@ node *insert_into_leaf(node *leaf, unsigned char *key, record *pointer ) {
 			insertion_point++;
 
 
-		printf("Insert new split node to blus tree node %d\n", insertion_point);
+		// printf("Insert new split node to blus tree node %d\n", insertion_point);
 
 		for (i = leaf->num_keys; i > insertion_point; i--) {
 			leaf->keys[i] = leaf->keys[i - 1];
@@ -611,7 +611,7 @@ node *insert_into_leaf(node *leaf, unsigned char *key, record *pointer ) {
 				break;
 			}
 		}
-		printf("Insert into block %d, %s, %u\n", insertion_point, key, pointer->offset );
+		// printf("Insert into block %d, %s, %u\n", insertion_point, key, pointer->offset );
 		IntToByte( pointer->offset );
 		buildBase( key );
 		insert_into_block( leaf->block[insertion_point], base );

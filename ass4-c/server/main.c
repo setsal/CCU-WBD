@@ -370,7 +370,7 @@ int main (int argc, char ** argv) {
 
 
                     //Insert into B Plus Tree
-                    printf("[%d] ", validRecords);
+                    // printf("[%d] ", validRecords);
                     root = insert(root, url, pDbFileMapOffset);
                     // printf("%d %s\n", pDbFileMapOffset, url);
                     validRecords++;
