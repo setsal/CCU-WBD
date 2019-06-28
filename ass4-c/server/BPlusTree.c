@@ -54,6 +54,7 @@ int path_to_root(node *const root, node *child);
 void print_leaves(node *const root);
 void print_tree(node *const root);
 void find_and_print(node *const root, unsigned char *key, int verbose, char *l_dbfile, char *l_dbfilemap);
+void find_and_print2(node *const root, unsigned char *key, int verbose, char *l_dbfile, char *l_dbfilemap, FILE * writefp);
 node *find_leaf(node *const root, unsigned char *key, bool verbose);
 record *find(node *root, unsigned char *key, bool verbose, node ** leaf_out);
 record *find_close(node *root, unsigned char *key, bool verbose, node ** leaf_out);
@@ -1090,4 +1091,104 @@ void buildBase( unsigned char *rid ) {
 node *destroy_tree(node *root) {
 	destroy_tree_nodes(root);
 	return NULL;
+}
+
+
+void find_and_print2(node *const root, unsigned char *key, int verbose, char *l_dbfile, char *l_dbfilemap, FILE * writefp ) {
+    node *leaf = NULL;
+	FILE *fp;
+	record * r = find(root, key, verbose, NULL);
+	unsigned char s[20];
+	char str[500];
+	int i, offset = 0, isFind = 1;
+
+	if (r == NULL) {
+
+		leaf = find_leaf(root, key, verbose);
+		for (i = 0; i < leaf->num_keys; i++)
+		   if ( strcmp( leaf->keys[i], key ) >= 0 ) break;
+
+		i = i -1;
+
+		// Do sequence search in the block
+		unsigned char *blockptr = leaf->block[i]->blockptr;
+		while ( strcmp(blockptr, key) != 0 ) {
+			if( offset+17 > leaf->block[i]->blockSize ) {
+				isFind = 0;
+				break;
+			}
+			blockptr+=17;
+			offset+=17;
+		}
+
+
+		if ( isFind == 0 ) {
+			return;
+		}
+
+		blockptr+=12;
+		for ( i=0; i<4; i++){
+			s[i] = *blockptr++;
+		}
+
+		// Get db file Map offset
+		pDbFileMapOffset = s[0] << 24 | s[1] << 16 | s[2] << 8 | s[3];
+
+		// Get db file Map Value
+		fp = fopen( l_dbfilemap,"r");
+		fseek(fp, pDbFileMapOffset, SEEK_SET);
+		fscanf(fp, "%u", &pDbFileOffset);
+		fclose(fp);
+
+		// Get db file Value
+		fp = fopen( l_dbfile,"r");
+		fseek(fp, pDbFileOffset, SEEK_SET);
+		fgets( str, 500, fp );
+		fclose(fp);
+
+		// Print the youtube data detail
+		char *tmp = str;
+		int counter = 0;
+		fprintf( writefp, "%s", field[0]);
+		for ( i=0; i<strlen(str); i++ ) {
+			if ( str[i] == '\t' ) {
+				counter++;
+				fprintf( writefp, "\n%s", field[counter]);
+			}
+			else {
+				fprintf( writefp, "%c", str[i]);
+			}
+		}
+
+	}
+	else {
+
+		// Get db file Map Value
+		fp = fopen( l_dbfilemap,"r");
+		fseek(fp, r->offset, SEEK_SET);
+		fscanf(fp, "%u", &pDbFileOffset);
+		fclose(fp);
+		//
+		// // Get db file Value
+		fp = fopen( l_dbfile,"r");
+		fseek(fp, pDbFileOffset, SEEK_SET);
+		fgets( str, 500, fp );
+		fclose(fp);
+
+		// // Print the youtube data detail
+		char *tmp = str;
+		int counter = 0;
+		fprintf( writefp, "%s", field[0]);
+		for ( i=0; i<strlen(str); i++ ) {
+			if ( str[i] == '\t' ) {
+				counter++;
+				fprintf( writefp, "\n%s", field[counter]);
+			}
+			else {
+				fprintf( writefp, "%c", str[i]);
+			}
+		}
+
+	}
+	printf("[INFO] Success find and write\n");
 }

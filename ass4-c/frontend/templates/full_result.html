@@ -1,0 +1,26 @@
+<!-- templates/draw.html -->
+{% extends "full.html" %}
+
+{% block content %}
+<div class="ui segments">
+  <div class="ui segment">
+    <p>Runtime information</p>
+  </div>
+  <div class="ui segments">
+    <div class="ui blue segment">
+        {% for item in runtime %}
+            {{item}}<br >
+        {% endfor %}
+      <p></p>
+    </div>
+  </div>
+  <div class="ui segment">
+      {% for item in result %}
+        {% if item[:4] == "\t" + "url" %}
+        </div><div class="ui segment">
+        {% endif %}
+        {{item}}<br >
+      {% endfor %}
+  </div>
+</div>
+{% endblock content %}

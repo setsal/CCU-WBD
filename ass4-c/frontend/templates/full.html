@@ -15,31 +15,45 @@
   .container {
       padding: 5em 0em;
     }
+   .video-container {
+        position: relative;
+        padding-bottom: 56.25%;
+        padding-top: 30px; height: 0; overflow: hidden;
+    }
+
+    .video-container iframe,
+    .video-container object,
+    .video-container embed {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
   </style>
   <body>
       <div class="ui text container">
           <h3 class="first">Other function...</h3>
           <p>
-              <div class="ui green button" style="margin-top: 5px;"><a href="/build" style="color: #fefefe;">Build & Save!</a></div>
+              <div class="ui primary button" style="margin-top: 5px;"><a href="/build" style="color: #fefefe;">Build & Save!</a></div>
              <div class="ui primary button" style="margin-top: 5px;"><a href="/search" style="color: #fefefe;">Search!</a></div>
-             <div class="ui primary button" style="margin-top: 5px;"><a href="/fullsearch" style="color: #fefefe;">Full-Text Search!</a></div>
+             <div class="ui green button" style="margin-top: 5px;"><a href="/fullsearch" style="color: #fefefe;">Full-Text Search!</a></div>
              <div class="ui primary button" style="margin-top: 5px;"><a href="/delete" style="color: #fefefe;">Delete!</a></div>
           </p>
-          <h1 class="ui dividing header">Build</h1>
+          <h1 class="ui dividing header">Full Text Search ( Title )</h1>
 
-          <h3 class="first">Select your method</h3>
+          <h3 class="first">Input a Text</h3>
           <p>
-              <form class="ui form" action="/rbuild" method="post">
+              <form class="ui form" action="/rfullsearch" method="post">
                 <div class="field">
-                    <input type="radio" name="build_method" value="build"> Build
-                    <br />
-                    <input type="radio" name="build_method" value="recover"> Recover from file
+                  <input type="text" name="searchtext" placeholder="Search_Text">
                 </div>
                 <button class="ui button" type="submit">Submit</button>
               </form>
           </p>
 
           <h3>Result</h3>
+          <p>your full text search result.</p>
           {% block content %} {% endblock content %}
       </div>
   </body>

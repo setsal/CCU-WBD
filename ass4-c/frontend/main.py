@@ -43,28 +43,83 @@ def rsearch():
     command = "controller.exe s " + rid
 
     myCmd = os.popen(command).read()
-    fp = open('./server/tmp.txt', 'r')
-    result = fp.readlines()
-    fp.close()
+
+    if myCmd[-6:-1] == 'found':
+        return render_template(
+            'search_failed.html',
+            rid = rid
+        )
+    else:
+        fp = open('./server/tmp.txt', 'r')
+        result = fp.readlines()
+        fp.close()
+
+        fp = open('./server/info.txt', 'r')
+        runtime = fp.readlines()
+        fp.close()
+        # with open('./server/info.txt', "r") as fp2:
+        #     runtime = fp.readlines()
+
+        # Further file processing goes here
+        return render_template(
+            'search_result.html',
+            rid = rid,
+            runtime = myCmd[-6:-1],
+            result = result,
+            title = result[1][5:],
+            content = result[2][9:],
+            viewCount = result[3],
+            res = result[4],
+            duration = result[5]
+        )
+
+
+
+@app.route('/delete')
+def delete():
+    return render_template('delete.html')
+
+@app.route('/rdelete', methods=['POST'])
+def rdelete():
+    rid = request.form.get('record')
+    command = "controller.exe d " + rid
+
+    myCmd = os.popen(command).read()
+
+    # Further file processing goes here
+    return render_template(
+        'delete_result.html',
+        rid = rid
+    )
+
+
+@app.route('/fullsearch')
+def fullsearch():
+    return render_template('full.html')
+
+@app.route('/rfullsearch', methods=['POST'])
+def rfullsearch():
+    searchtext = request.form.get('searchtext')
+    command = "controller.exe k " + searchtext
+
+    myCmd = os.popen(command).read()
 
     fp = open('./server/info.txt', 'r')
     runtime = fp.readlines()
     fp.close()
-    # with open('./server/info.txt', "r") as fp2:
-    #     runtime = fp.readlines()
 
-    # Further file processing goes here
+    fp = open('./server/tmp.txt', 'r')
+    result = fp.readlines()
+    fp.close()
+
     return render_template(
-        'search_result.html',
-        rid = rid,
+        'full_result.html',
+        searchtext = searchtext,
         runtime = runtime,
-        result = result,
-        title = result[1][5:],
-        content = result[2][9:],
-        viewCount = result[3],
-        res = result[4],
-        duration = result[5]
+        result = result
     )
+
+
 # #post /store data: {name :}
 # @app.route('/store' , methods=['POST'])
 # def create_store():

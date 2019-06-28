@@ -20,10 +20,12 @@
 
 // GLOBALS
 unsigned char delete_array[100000][13];
+unsigned char fullsearch_array[100000][13];
+int fullsearch_array_counter;
 char str[1000];
 char ENV[6][50];
 double start_time, end_time;
-
+FILE *tmpfileptr;
 
 
 //tries tree
@@ -99,7 +101,10 @@ trie init_tables()
 
 int print_path(char *path)
 {
-	printf(" %s", path);
+
+	fprintf(tmpfileptr, " %s", path);
+	strcpy(fullsearch_array[fullsearch_array_counter], path);
+	fullsearch_array_counter++;
 	return 1;
 }
 
@@ -123,7 +128,9 @@ int trie_all(trie root, char path[], int depth, int (*callback)(char *))
 void search_index(trie root, const char *word)
 {
 	char path[1024];
-	printf("Search for \"%s\": ", word);
+	fullsearch_array_counter = 0;
+	tmpfileptr = fopen("info.txt", "w");
+	fprintf(tmpfileptr, "Search for \"%s\": ", word);
 	trie found = find_word(root, word);
 
 	if (!found) printf("not found\n");
@@ -131,6 +138,7 @@ void search_index(trie root, const char *word)
 		trie_all(found->next[0], path, 0, print_path);
 		printf("\n");
 	}
+	fclose(tmpfileptr);
 }
 
 
@@ -236,7 +244,6 @@ int main (int argc, char ** argv) {
 
         switch (instruction) {
         case 'd':
-            scanf("\n%s", input_key);
             strcpy( delete_array[delete_counter], input_key );
             delete_counter++;
             printf("[Success] Delete record %s\n", input_key );
@@ -271,10 +278,14 @@ int main (int argc, char ** argv) {
             start_time = clock();
             if ( check_not_in_delete(input_key, delete_counter) ) {
                 find_and_print( root, input_key, 0, ENV[2], ENV[3] );
+				sprintf(buff, "%s",  "success");
             }
+			else {
+				printf("[INFO] Not found\n");
+				sprintf(buff, "%s",  "not found");
+			}
             end_time = clock();
             printf("[INFO] Search on a key, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
-			sprintf(buff, "%s",  "success");
             break;
         case 't':
             print_tree(root);
@@ -404,10 +415,15 @@ int main (int argc, char ** argv) {
                 printf("You have not built the block b+tree\n");
                 break;
             }
-            scanf("\n%s", input_key);
             start_time = clock();
             search_index(trieRoot, input_key);
             end_time = clock();
+			tmpfileptr = fopen("tmp.txt", "w");
+			for ( i=0; i<fullsearch_array_counter; i++){
+				printf("%s\n", fullsearch_array[i]);
+				find_and_print2( root, fullsearch_array[i], 0, ENV[2], ENV[3], tmpfileptr );
+			}
+			fclose(tmpfileptr);
             printf("[INFO] Full text search on a word, costs %lf s\n", (end_time - start_time) / CLOCKS_PER_SEC);
 			sprintf(buff, "%s",  "success");
             break;
@@ -420,7 +436,7 @@ int main (int argc, char ** argv) {
         };
 
 		//socket return
-		sendto( sock_fd, buff, strlen(buff)-1, 0, (struct sockaddr *)&cliaddr, sizeof(servaddr) );
+		sendto( sock_fd, buff, strlen(buff), 0, (struct sockaddr *)&cliaddr, sizeof(servaddr) );
         printf("[INFO] Send %s - %d\n", buff, receiveCounter++);
     }
     printf("\n");
